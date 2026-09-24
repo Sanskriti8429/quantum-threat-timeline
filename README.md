@@ -1,2 +1,3 @@
-# quantum-threat-timeline
-Resource-cost benchmarking of Shor's/Grover's algorithms against real cryptosystems
+# Quantum Threat Timeline
+
+Resource-cost benchmarking of Shor's and Grover's algorithms against real-world cryptosystems
