@@ -40,12 +40,9 @@ Given realistic error-correction overheads, how many physical qubits and how muc
 git clone https://github.com/Sanskriti8429/quantum-threat-timeline.git
 cd quantum-threat-timeline
 python -m venv .venv
-.venv\Scripts\activate    # Windows
+.venv\Scripts\activate
 python shor_classical.py
 ```
-
-Stage 1 uses only the Python standard library. A `requirements.txt` will be
-added when third-party dependencies are introduced.
 
 ## Results
 
