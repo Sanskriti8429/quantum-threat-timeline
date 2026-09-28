@@ -41,7 +41,7 @@ def run_all(N):
                 coprime_ok+=1
         status= "OK " if factors else "FAIL"
         print(f"a={a:2d} {status} {factors} ({note})")
-    print(f"coprime a that worked: {coprime_ok}/{coprime_tried}\n")
+    print(f"coprime 'a' that worked: {coprime_ok}/{coprime_tried}\n")
     
     
 if __name__== "__main__":
