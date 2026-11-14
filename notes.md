@@ -48,6 +48,65 @@ for a given `N`.
 
 ### Predicted
 
+(What the math says to expect before running. Edit to match what I actually
+guessed.)
+
+- `H|0>` gives equal amplitudes, so measuring it should give about 50/50.
+- Applying `H` twice should return `|0>`, because `H` is its own inverse.
+- `Z` only flips the sign of the `|1>` amplitude, so I expected the
+  measurement probabilities of `Z H|0>` to stay `[0.5, 0.5]`.
+- `H Z H |0>` was the open question: a sign that changes no probabilities
+  by itself might still change the result after a second `H`.
+- `H|0> ⊗ H|0>` should give four equal probabilities of 0.25.
+- The memory needed for an n-qubit state doubles with every added qubit.
+
 ### Surprised me
 
+(Keep only the ones that are true for you.)
+
+- `H H |0>` printed `-2.2e-17` instead of exactly 0. That is floating-point
+  rounding, so comparisons need `np.allclose`, never `==`.
+- `Z` changed nothing in the measurement probabilities, yet `H Z H |0>`
+  gave `|1>` while `H H |0>` gave `|0>`. A sign I could not see in the
+  probabilities flipped the final answer.
+- n = 30 qubits needs 16 GiB for the state vector alone, and n = 35 needs
+  512 GiB.
+
 ### Explain to someone else
+
+**Phase.** A qubit amplitude is a complex number, and `e^(i*theta)` is a
+complex number of magnitude 1 at angle `theta`. Multiplying an amplitude by
+it changes its direction but not its magnitude, so measurement probabilities
+(`|amplitude|^2`) do not change. Phase only matters when amplitudes combine,
+because the same sign flip makes them add or cancel. This is interference,
+and it is how Shor's algorithm cancels wrong periods and boosts the right
+one. The Quantum Fourier Transform is built entirely out of phases.
+
+**Unitary.** A gate is a matrix `U` with `U† U = I`, where `U†` is the
+conjugate transpose. That guarantees the total probability stays 1 and that
+every gate can be undone. It is also why Shor's modular exponentiation must
+be built reversibly, which is what makes it expensive.
+
+**Why n qubits need 2^n numbers.** One qubit is a length-2 vector. Combining
+qubits with the tensor product multiplies the lengths, so n qubits have
+2^n amplitudes, one for each of the 2^n basis states. Memory doubles with
+every added qubit: 0.5 GiB at n = 25 and 16 GiB at n = 30 (16 bytes per
+complex number). That is why classical simulators stop at roughly 25 to 30
+qubits, and why hand-built NumPy simulation only works for small examples.
+
+**Entanglement.** A two-qubit state `[c00, c01, c10, c11]` that is a product
+of two single-qubit states `a ⊗ b` has `c00 = a0*b0`, `c01 = a0*b1`,
+`c10 = a1*b0` and `c11 = a1*b1`. Then `c00*c11 = a0*b0*a1*b1 = c01*c10`, so
+`c00*c11 - c01*c10 = 0` for every product state. For the Bell state
+`(|00> + |11>)/sqrt(2)` we have `c00 = c11 = 1/sqrt(2)` and
+`c01 = c10 = 0`, so the quantity is 1/2, not 0. No pair of single-qubit
+states multiplies to give it, so the two qubits cannot be described
+separately. Measuring either qubit gives 0 or 1 at random, but the second
+qubit's result always matches the first. The state belongs to the pair, not
+to either qubit, and algorithms like Shor's use that kind of correlation.
+
+### Code
+
+`qubits.py` (single-qubit state vector, Hadamard gate, measurement sampling)
+and `linalg_warmup.py` (complex numbers, unitarity checks, tensor products,
+memory scaling, product-state test).
