@@ -40,7 +40,8 @@ Given realistic error-correction overheads, how many physical qubits and how muc
 git clone https://github.com/Sanskriti8429/quantum-threat-timeline.git
 cd quantum-threat-timeline
 python -m venv .venv
-.venv\Scripts\activate
+.venv\Scripts\activate    # Windows
+pip install -r requirements.txt
 python shor_classical.py
 ```
 
