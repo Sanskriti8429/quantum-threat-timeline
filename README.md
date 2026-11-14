@@ -14,7 +14,7 @@ Given realistic error-correction overheads, how many physical qubits and how muc
 
 - [x] Stage 1: Classical core of Shor's algorithm (order finding, factor extraction)
 - [x] Stage 2: Math prerequisites and quantum building blocks (qubits, gates, tensor products, QFT) in a hand-built NumPy simulator
-- [ ] Stage 3a: Shor's period-finding for N = 15 implemented by hand in NumPy
+- [x] Stage 3a: Shor's period-finding for N = 15 implemented by hand in NumPy
 - [ ] Stage 3b: Shor's algorithm in Qiskit, factoring small semiprimes, cross-checked against 3a
 - [ ] Stage 4: Grover's algorithm in NumPy, then on a toy symmetric cipher, showing the empirical √N speedup
 - [ ] Stage 5: Fault-tolerant resource estimator (physical qubits, gate counts, circuit depth, runtime), validated against Gidney-Ekerå (2019), with sensitivity analysis over code distance, physical error rate, and cycle time
@@ -55,3 +55,8 @@ To be added as stages are completed.
   so it demonstrates the classical reduction, not a quantum speedup.
 - The reduction requires N to be odd and not a prime power. For N = 9 no
   coprime base succeeds, and for N = 8 it returns the non-prime factor 4.
+- Stage 3a's modular exponentiation is a lookup-table permutation, not a
+  gate-level circuit, so it demonstrates correctness but gives no honest
+  gate counts for RSA-scale arithmetic. Stage 5 addresses this.
+- N = 15 is a degenerate demonstration (all its orders are powers of two);
+  N = 21 shows the realistic dependence of success on register size.

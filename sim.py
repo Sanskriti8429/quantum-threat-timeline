@@ -78,3 +78,32 @@ def qft_circuit(state, n):
     for i in range(n // 2):
         state = apply_swap(state, i, n - 1 - i, n)
     return state
+
+
+def _qft_ops(qubits):
+    m = len(qubits)
+    ops = []
+    for j in range(m):
+        ops.append(("H", qubits[j]))
+        for k in range(j + 1, m):
+            ops.append(("CP", qubits[k], qubits[j], np.pi / 2 ** (k - j)))
+    for i in range(m // 2):
+        ops.append(("SWAP", qubits[i], qubits[m - 1 - i]))
+    return ops
+
+
+def qft_on(state, qubits, n, inverse=False):
+    """QFT (or inverse QFT) on the listed qubits of an n-qubit state.
+    The inverse is the same gates in reverse order with phases negated."""
+    ops = _qft_ops(qubits)
+    if inverse:
+        ops = ops[::-1]
+    for op in ops:
+        if op[0] == "H":
+            state = apply_gate(state, H, op[1], n)
+        elif op[0] == "CP":
+            angle = -op[3] if inverse else op[3]
+            state = apply_controlled(state, P(angle), op[1], op[2], n)
+        else:
+            state = apply_swap(state, op[1], op[2], n)
+    return state

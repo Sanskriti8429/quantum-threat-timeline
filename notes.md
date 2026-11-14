@@ -208,3 +208,82 @@ should therefore treat swaps as an optional parameter.
 `sim.py` (state vectors, gates, controlled gates, swap, QFT as matrix and
 circuit), `stage2b_tests.py` (CNOT, Bell, GHZ, QFT verification, period
 finding), and `stage2b_exercises.py` (period 3, gate counts, no-swap QFT).
+
+## Stage 3a: Shor's period finding, built by hand
+
+### Predicted
+
+(What the math says to expect. Edit to match what I actually guessed.)
+
+- N=15, a=7 has order 4, so with t=8 the counting register should show
+  peaks at 0, 64, 128, 192 with probability 0.25 each.
+- With the work register fixed to a single value, the surviving counting
+  values should be spaced 4 apart, with a different offset per work value.
+- a=11 has order 2, so peaks at 0 and 128.
+- m=128 gives 1/2, whose denominator is 2, but the true order is 4, so
+  recovering r should need multiples of the denominator.
+- a=14 should always fail, because a^(r/2) = -1 (mod 15).
+- N=21, a=2 has order 6, which does not divide 1024, so most peaks should
+  be blurry.
+
+### Surprised me
+
+(Keep only the ones that are true for you.)
+
+- For a=14 the quantum step found the correct order every time. The failure
+  is entirely classical, so re-measuring never helps; a new a is needed.
+- For N=21, the peaks at m=0 and m=512 are exact while the others are
+  blurry. Exact peaks happen when 3 divides s, since s * 1024 / 6 is an
+  integer only then.
+- The success probability for N=15 does not change with t, because its
+  orders (2 and 4) are powers of two.
+
+### Explain to someone else
+
+**The circuit.** A counting register (t qubits) is put into a uniform
+superposition. Counting qubit j then controls multiplication of a work
+register by a^(2^(t-1-j)) mod N, so the work register ends up holding
+a^x mod N for every x at once. The state is entangled: for each work value,
+the counting register holds only the x values with that value, spaced r
+apart, starting at a random offset. The inverse QFT turns that spacing into
+peaks at multiples of 2^t / r, and the offset only changes phases.
+
+**Post-processing.** A measurement m satisfies m / 2^t ~ s / r for a
+random s. A continued fraction expansion (Fraction.limit_denominator(N))
+recovers a denominator d that equals r or divides it, so I try small
+multiples of d until a^(d*k) = 1 (mod N). Then the stage 1 gcd step gives
+the factors. If a^(r/2) = -1 or r is odd, the run fails and a new a is
+needed.
+
+**Choosing t.** To separate different fractions s/r with denominators up
+to N, m / 2^t must be accurate to about 1/N^2, so 2^t >= N^2, which means
+t is about 2 * log2(N). For N=21, a=2 the success probability per attempt
+rose from about 0.2 at t <= 5 to 0.82 at t=10, with a ceiling of 5/6.
+
+**Operation counts.** t controlled modular multiplications, plus a QFT
+with t Hadamards, t(t-1)/2 controlled-phase gates and floor(t/2) swaps.
+For t=8: 8 multiplications and 8 + 28 + 4 QFT gates.
+
+### Limitations
+
+- `controlled_modmult` is a lookup-table permutation built by looping over
+  all y < N. That is exponential in the bit length of N and is not a
+  gate-level circuit. Real implementations need reversible modular
+  arithmetic (adders, comparators, Toffoli gates), which dominates the
+  qubit and gate counts at RSA scale. The multiplication count above is
+  therefore not an honest resource number; Stage 5 has to fill this gap.
+- N=15 is a degenerate case: all its orders are powers of two, so the
+  peaks are always exact and success does not depend on t. N=21 shows the
+  realistic behavior.
+- The simulator stores 2^(t + n_work) amplitudes (15 qubits for N=21),
+  so it cannot approach RSA sizes. It shows correctness, not speed.
+- The multiples loop in `recover_order` is a simple heuristic; production
+  code also tries neighboring measurements and combines several runs.
+
+### Code
+
+`shor_quantum.py` (state preparation, controlled modular multiplication,
+continued-fraction post-processing, the full run), `sim.py` (now with
+`qft_on` for subsets of qubits and its inverse), and
+`stage3a_exercises.py` (forward vs inverse QFT, success vs t, operation
+counts).
