@@ -13,7 +13,7 @@ Given realistic error-correction overheads, how many physical qubits and how muc
 ## Progress
 
 - [x] Stage 1: Classical core of Shor's algorithm (order finding, factor extraction)
-- [ ] Stage 2: Math prerequisites and quantum building blocks (qubits, gates, tensor products, QFT) in a hand-built NumPy simulator
+- [x] Stage 2: Math prerequisites and quantum building blocks (qubits, gates, tensor products, QFT) in a hand-built NumPy simulator
 - [ ] Stage 3a: Shor's period-finding for N = 15 implemented by hand in NumPy
 - [ ] Stage 3b: Shor's algorithm in Qiskit, factoring small semiprimes, cross-checked against 3a
 - [ ] Stage 4: Grover's algorithm in NumPy, then on a toy symmetric cipher, showing the empirical √N speedup
