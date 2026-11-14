@@ -110,3 +110,101 @@ to either qubit, and algorithms like Shor's use that kind of correlation.
 `qubits.py` (single-qubit state vector, Hadamard gate, measurement sampling)
 and `linalg_warmup.py` (complex numbers, unitarity checks, tensor products,
 memory scaling, product-state test).
+
+## Stage 2b: Gates, a circuit simulator, and the QFT
+
+### Predicted
+
+(What the math says to expect. Edit to match what I actually guessed.)
+
+- CNOT with qubit 0 as control flips the target only when the control is 1,
+  so `|10>` goes to `|11>` and `|11>` goes to `|10>`.
+- H on qubit 0 followed by CNOT should give the Bell state, with only the
+  outcomes 00 and 11 at probability 0.5 each. The 3-qubit version (GHZ) should
+  give only 000 and 111.
+- The circuit QFT built from Hadamards, controlled-phase gates and swaps
+  should equal the full QFT matrix.
+- A state with period 4 on 16 amplitudes should give a QFT with peaks at
+  multiples of N/r = 4.
+- Shifting where the pattern starts should change phases but not
+  probabilities.
+
+### Surprised me
+
+(Keep only the ones that are true for you.)
+
+- The circuit matched the matrix for every basis input for n = 1 to 5, even
+  though it uses only about n^2/2 gates instead of an N x N matrix.
+- The shifted period-4 state gave exactly the same probabilities, with the
+  offset appearing only as phases (1, i, -1, -i) on the peaks.
+
+### Explain to someone else
+
+**Gates and controlled gates.** Gates acting on one qubit of an n-qubit
+register are 2x2 unitaries applied along one axis of the state, with the
+other qubits untouched. A controlled gate applies the 2x2 gate only to the
+part of the state where the control qubit is 1. CNOT is a controlled X, and
+it is what creates entanglement: H then CNOT turns |00> into the Bell state.
+
+**The QFT.** On N = 2^n amplitudes, the QFT maps amplitude pattern x to
+F[j,k] = e^(2*pi*i*j*k/N) / sqrt(N). A state that repeats with period r
+turns into peaks at multiples of N/r, and the starting offset of the
+pattern only changes phases. That is why measuring the QFT output reveals
+the period without needing to know where the pattern starts, and it is the
+quantum step in Shor's algorithm.
+
+**Why the circuit is cheap.** The circuit uses n Hadamards, n(n-1)/2
+controlled-phase gates, and floor(n/2) swaps, which grows like n^2. The
+matrix has 4^n entries. The circuit is what makes the QFT efficient, and
+the gate counts feed the Stage 5 resource estimator.
+
+**Gate counts (from `stage2b_exercises.py`):**
+
+| n | Hadamards | Controlled-phase | Swaps |
+|---|---|---|---|
+| 4 | 4 | 6 | 2 |
+| 8 | 8 | 28 | 4 |
+| 16 | 16 | 120 | 8 |
+
+### Period 3 (not a divisor of 16)
+
+The probability concentrates on indices 0, 5 and 11, the integers nearest
+to multiples of N/r = 16/3 (0, 5.33, 10.67). Index 0 has probability 0.375
+(6 ones in the input, so 6/16), indices 5 and 11 have 0.2336 each, and the
+remaining ~0.16 is spread as small tails. The peaks are blurry because 3
+does not divide 16, so no integer sits exactly on a multiple of N/r.
+
+The period can still be recovered classically. For a measured value m, the
+continued fraction expansion of m/16 gives a nearby fraction with a small
+denominator: 5/16 has the convergent 1/3, and 11/16 has 2/3, so both give
+r = 3. This is the classical post-processing step of Shor's algorithm. A
+larger register makes the peaks sharper, which is why real implementations
+use about twice as many qubits in the period register as bits in N.
+
+### What happens without the final swaps
+
+Without the swaps the circuit matches the matrix QFT only for n = 1. For
+n >= 2 the output equals the matrix QFT with its indices in bit-reversed
+order (verified numerically). The period-4 peaks moved from 0, 4, 8, 12 to
+0, 1, 2, 3, because reversing the 4-bit forms of 0, 4, 8, 12 gives
+0, 2, 1, 3.
+
+This matters for resource counting. The swaps cost n/2 gates (three CNOTs
+each) and can be skipped if the measured bits are read in reverse order
+classically, so many resource estimates leave them out. The estimator
+should therefore treat swaps as an optional parameter.
+
+### Limitations
+
+- The simulator stores all 2^n amplitudes, so it is only practical up to
+  about 25 qubits. It demonstrates correctness on small examples and says
+  nothing about speed at RSA scale.
+- Gate counts here are for the exact QFT. Large-scale estimates use
+  approximate QFTs and different arithmetic constructions, which we
+  cover in Stage 5.
+
+### Code
+
+`sim.py` (state vectors, gates, controlled gates, swap, QFT as matrix and
+circuit), `stage2b_tests.py` (CNOT, Bell, GHZ, QFT verification, period
+finding), and `stage2b_exercises.py` (period 3, gate counts, no-swap QFT).
