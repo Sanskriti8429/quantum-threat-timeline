@@ -31,7 +31,7 @@ AES-128, and how does that compare with current hardware trajectories?
 - [x] Stage 5a: Read Gidney-Ekerå (2019) and summarize its cost model
 - [x] Stage 5b: Error-correction basics behind the model (logical vs. physical qubits, code distance, logical error rate, magic-state factories)
 - [x] Stage 5c: Estimator v0 that reproduces the paper's section 2 hand calculations
-- [ ] Stage 5d: Full parameter search reproducing Table 3 rows (n = 1024 to 4096), with divergences documented
+- [x] Stage 5d: Full parameter search reproducing Table 3 rows (n = 1024 to 4096), with divergences documented
 - [ ] Stage 5e: Sensitivity analysis (physical error rate, cycle time, reaction time, code distance) and comparison with newer published estimates
 - [ ] Stage 5f: Grover/AES-128 counterpart: oracle cost and sequential depth
 - [ ] Stage 5g (optional): Neural decoder for a small error-correcting code, compared against a classical decoder, with results fed into the estimator
@@ -73,6 +73,7 @@ locked-down Windows machines Qiskit's compiled library is blocked.
 | 3b | Hard-wired N = 15 circuit (a = 7, 8 counting qubits): 112 CNOTs, depth 119 after transpiling. This does not extrapolate to RSA scale (see limitations) |
 | 4a/4b | Grover finds the key of a toy cipher with 12 to 804 oracle queries for 8 to 20 key bits. Measured log-log slopes against search-space size: 0.504 for Grover and 1.004 for classical brute force |
 | 5c | Estimator v0 reproduces Gidney-Ekerå's section 2 numbers for n = 2048 (6.9 h, 26.5% topological error, 22.3 M qubits, retry risk 31.9% against 31%). With unrounded formulas the per-run runtime is 5.0 h against Table 3's 5.1 h, and Toffoli counts are within 5% of Table 1 for n = 1024 to 3072. The retry risk (24.5% against 31%) is not yet reproduced (stage 5d) |
+| 5d | With a reconstructed factory-error model (calibrated on two published anchors), the estimator reproduces Gidney-Ekerå's Table 3 rows: Toffolis within 5%, runtimes within 8%, qubits within 6%, retry risks within 3 points (n = 2048: 34% against 31%). A grid search of 28,350 parameter sets per n puts the paper's chosen parameters in the top 0.2%, within 3.6% of my optimum |
 
 ## Known limitations
 
@@ -109,3 +110,9 @@ locked-down Windows machines Qiskit's compiled library is blocked.
   a level 1 distance of 15.
 - The paper's Eq. (2) is printed with 2^(c_exp + c_pad) where its own
   numbers require 2^(c_exp + c_mul); the estimator uses the latter.
+- Stage 5d's factory error model and layout are reconstructions (two
+  calibration anchors, assumed falloff rates, a footprint fitted to two Table 3
+  rows), because the authors' spreadsheet and script were unavailable. The
+  paper's parameter choices sit near the optimum of the search, but the
+  objective is flat there, so this is weak evidence.
+- The physical error rate is fixed at 10^-3 in the estimator so far.

@@ -904,3 +904,110 @@ this model does not include.
 `estimator.py` (the model, two modes, comparison tables) and
 `test_estimator.py` (the stage 5a checkpoints as seven unit tests, run
 with `python -m unittest -v test_estimator`).
+
+## Stage 5d: Level 1 distance d1 and the parameter search
+
+### Predicted
+
+(What the model implies. Edit to match what I actually guessed.)
+
+- A search over the paper's parameter ranges, scored by s^1.2 * t / (1 - risk),
+  should land near Table 3's choices if the model is reasonable.
+- At n = 2048 the choices d1 = 15, d2 = 27 versus d1 = 17, d2 = 29 should be
+  close, as in stage 5b.
+- delta_off should barely matter.
+- Table 3's n = 2048 row uses d1 = 15 and section 2 uses d1 = 17, so its
+  distillation error and retry risk should be higher than the section 2
+  defaults.
+
+### Surprised me
+
+(Keep only the ones that are true for you.)
+
+- My first version charged nothing for a larger factory, and the search
+  chose d1 = 23 for n = 1024. The footprint has to grow with d1.
+- The stage 5c retry risk gap (24.5% against Table 3's 31%) is explained by
+  d1: the table's n = 2048 row uses d1 = 15, not the section 2 value of 17.
+  My stage 5c lead (counting all logical qubits in the topological error)
+  was not needed.
+- All four Table 3 choices land in the top 0.2% of the 21,000 to 28,000 grid
+  points, within 3.6% of my optimum.
+
+### Explain to someone else
+
+**What the factory paper gives.** Gidney and Fowler (2019): the CCZ factory
+is 12d x 6d and makes one CCZ every 5.5d cycles, with suppression 28 eps^2
+in the level 1 T-state error eps. The level 1 T factory is 15-to-1
+distillation (35 eps^3). Distillation limited, the T-state error is 3.5e-8
+and the CCZ error 3.4e-14. At minimal distances (d0 = 7, d1 = 15, d2 = 31)
+the T-state error is about 1.4e-6 and the CCZ error about 5.3e-11. Raising
+d1 from 15 to 19 grows the footprint by about 20% and lets the factory
+produce about 1e12 states before an error.
+
+**What it does not give.** How topological error falls with d1 and d2,
+and how the layout changes with d1, are in a supplementary spreadsheet I
+could not retrieve.
+
+**My reconstruction.** Distillation error per CCZ state:
+p_ccz = 28 * eps_T1(d1)^2 + C2 * 10^(-(d2 - 27)/2), where eps_T1(d1) =
+3.5e-8 + 1.365e-6 * 10^(-(d1 - 15)/2) and C2 is calibrated so that
+(d1, d2) = (17, 27) gives the 6.4% over 3e9 states of Gidney-Ekerå 2.12.
+Assumed: the topological part falls 10x per +2 in d1, and the CCZ-factory
+term falls 10x per +2 in d2. Checks: (15, 31) gives 5.5e-11 (paper 5.3e-11),
+and the distillation floor gives 3.4e-14. At (19, 31) it gives 2.7e-13
+against the paper's order of magnitude of 1e-12.
+
+**Layout.** Piece width scales with d1 (113 at d1 = 17), fitted to the lower
+qubit counts of the d1 = 15 rows. Rows scale with c_sep + c_pad, which is an
+untested extrapolation.
+
+**Table 3 rows in the model (detailed mode, d1 from the table).**
+
+| n | Toffolis (G) | runtime per run (h) | qubits (M) | retry risk |
+|---|---|---|---|---|
+| 1024 | 0.38 (paper 0.4) | 1.2 (1.3) | 9.9 (9.7) | 6.1% (6%) |
+| 2048 | 2.58 (2.7) | 5.0 (5.1) | 19.8 (20) | 34.1% (31%) |
+| 3072 | 9.52 (9.9) | 11.6 (12) | 38.4 (38) | 10.4% (9%) |
+| 4096 | 22.23 (n/a) | 21.1 (22) | 58.3 (55) | 4.9% (5%) |
+
+**Search (28,350 grid points per n, objective s^1.2 * t / (1 - risk)).**
+
+| n | rank of Table 3 choice | objective vs optimum | optimum differs from Table 3 in |
+|---|---|---|---|
+| 1024 | 5 | 1.000x | delta_off only (7 vs 5), no effect |
+| 2048 | 59 of 26,325 | 1.036x | d1 = 17, d2 = 29 instead of 15, 27 |
+| 3072 | 18 of 25,737 | 1.005x | c_sep = 1536 instead of 1024 |
+| 4096 | 9 of 21,035 | 1.000x | delta_off only (7 vs 9) |
+
+At n = 2048 my optimum is 25.6 M qubits, 5.1 h per run and 3.8% risk, while
+Table 3's choice is 19.8 M, 5.0 h and 34% risk. The objective differs by
+3.6%, the same near-tie between d = 27 and d = 29 as in stage 5b.
+
+### How much weight this deserves
+
+- It supports the paper: all four chosen parameter sets sit in the top 0.2%
+  of my grid, with a model that was not tuned to select them.
+- It limits what that proves: the objective is flat over a wide region
+  (delta_off barely matters; many combinations are within 1%), so matching
+  the exact choices is weak evidence. My rankings also depend on the two
+  layout assumptions and the two-anchor distillation model, and I have not
+  yet tested how much they move when those change.
+
+### Limitations
+
+- p_ccz is a reconstruction from two anchors with assumed falloff rates,
+  about a factor of 4 off at the one order-of-magnitude check (d1 = 19).
+- Width proportional to d1 is fitted to two Table 3 rows, so those qubit
+  comparisons are not independent. Rows scaling with c_sep is untested, and
+  the factory count per piece is fixed at 14 regardless of d2.
+- The physical error rate is fixed at 1e-3, with the paper's cycle and
+  reaction times. The model's n = 2048 retry risk is 34% against 31%.
+- The authors' script and spreadsheet were not available, so this does not
+  reproduce their code, only the numbers their papers publish.
+
+### Code
+
+`estimator.py` (now with d1, the two-term CCZ error and a d1-dependent
+layout), `search.py` (grid search over d1, d2, c_mul, c_exp, c_sep and
+delta_off) and the tests `test_estimator.py` (9 tests) and `test_search.py`
+(1 test).

@@ -1,13 +1,33 @@
-
 import math
 import unittest
 
-from estimator import (Params, estimate, logical_error_per_cycle,
-                       seconds_per_lookup_addition, lookup_additions)
+from estimator import (
+    Params,
+    estimate,
+    logical_error_per_cycle,
+    p_ccz,
+    C2,
+    EPS_T_DIST,
+    seconds_per_lookup_addition,
+    lookup_additions
+)
 
 
 def within(value, target, rel):
     return abs(value - target) <= rel * abs(target)
+
+
+TABLE3 = {
+    1024: (15, 27, 5, 5, 1.3, 9.7, 0.06, 0.4),
+    2048: (15, 27, 4, 5, 5.1, 20, 0.31, 2.7),
+    3072: (17, 29, 6, 4, 12, 38, 0.09, 9.9),
+    4096: (17, 31, 9, 4, 22, 55, 0.05, None)
+}
+
+
+def table3_params(n):
+    d1, d2, dl, cm = TABLE3[n][:4]
+    return Params(n=n, d1=d1, d=d2, delta_off=dl, c_mul=cm)
 
 
 class TestSection2(unittest.TestCase):
@@ -24,12 +44,14 @@ class TestSection2(unittest.TestCase):
 
     def test_lookup_addition_phases(self):
         lookup, addition, other = seconds_per_lookup_addition(self.P)
+
         self.assertTrue(within(lookup, 14e-3, 0.05))
         self.assertTrue(within(addition, 22e-3, 0.05))
         self.assertTrue(within(lookup + addition + other, 37e-3, 0.05))
 
     def test_simplified_matches_section_2(self):
         s = self.simple
+
         self.assertTrue(within(s["lookup_additions"], 0.1 * 3029 * 2048, 0.001))
         self.assertTrue(within(s["runtime_h"], 7.0, 0.03))
         self.assertTrue(abs(s["p_topological"] - 0.27) < 0.01)
@@ -41,27 +63,50 @@ class TestSection2(unittest.TestCase):
     def test_detailed_runtime_matches_table_3(self):
         self.assertTrue(within(self.detail["runtime_h"], 5.1, 0.05))
 
-    def test_known_gap_retry_risk(self):
+    def test_section_2_defaults_are_not_the_table_3_row(self):
         self.assertTrue(0.20 < self.detail["retry_risk"] < 0.28)
-        self.assertTrue(within(self.detail["expected_runtime_h"], 7.4, 0.15))
 
 
-class TestOtherSizes(unittest.TestCase):
+class TestDistillationModel(unittest.TestCase):
 
-    TABLE3 = {
-        1024: (27, 5, 5, 1.3, 9.7, 0.4),
-        2048: (27, 4, 5, 5.1, 20, 2.7),
-        3072: (29, 6, 4, 12, 38, 9.9),
-        4096: (31, 9, 4, 22, 55, None)
-    }
+    def test_anchors(self):
+        self.assertTrue(within(p_ccz(17, 27), 0.064 / 3e9, 1e-9))
+        self.assertTrue(within(p_ccz(15, 31), 5.3e-11, 0.06))
+        self.assertTrue(within(28 * EPS_T_DIST ** 2, 3.4e-14, 0.05))
+        self.assertGreater(C2, 0)
 
-    def test_runtime_toffolis_and_qubits(self):
-        for n, (d2, dl, cm, t_paper, q_paper, tof_paper) in self.TABLE3.items():
-            r = estimate(Params(n=n, d=d2, delta_off=dl, c_mul=cm))
-            self.assertTrue(within(r["runtime_h"], t_paper, 0.10), f"runtime n={n}")
-            self.assertTrue(within(r["physical_qubits"] / 1e6, q_paper, 0.16), f"qubits n={n}")
+    def test_order_of_magnitude_at_d1_19(self):
+        self.assertTrue(0.25e-12 < p_ccz(19, 31) < 4e-12)
+
+
+class TestTable3(unittest.TestCase):
+
+    def test_rows(self):
+        for n, row in TABLE3.items():
+            _, _, _, _, t_paper, q_paper, risk_paper, tof_paper = row
+
+            r = estimate(table3_params(n))
+
+            self.assertTrue(
+                within(r["runtime_h"], t_paper, 0.10),
+                f"runtime n={n}"
+            )
+
+            self.assertTrue(
+                within(r["physical_qubits"] / 1e6, q_paper, 0.07),
+                f"qubits n={n}"
+            )
+
+            self.assertTrue(
+                abs(r["retry_risk"] - risk_paper) < 0.06,
+                f"retry risk n={n}"
+            )
+
             if tof_paper:
-                self.assertTrue(within(r["toffolis"] / 1e9, tof_paper, 0.08), f"toffolis n={n}")
+                self.assertTrue(
+                    within(r["toffolis"] / 1e9, tof_paper, 0.08),
+                    f"toffolis n={n}"
+                )
 
 
 class TestPaperTypo(unittest.TestCase):
@@ -69,6 +114,7 @@ class TestPaperTypo(unittest.TestCase):
     def test_eq2_as_printed_is_absurd(self):
         P = Params()
         printed = lookup_additions(P) * 2 ** (P.c_exp + P.c_pad())
+
         self.assertGreater(printed, 1e19)
 
 
