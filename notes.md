@@ -365,3 +365,87 @@ post-processing gave 764/1024 = 0.746 for N=15, a=7 (theory 0.75) and
 
 `shor_qiskit.py`: generic and N=15 gate-level circuits, cross-check
 against `shor_quantum.py` / `sim.py`, gate counts, and Aer sampling.
+
+## Stage 4a: Grover's algorithm in NumPy
+
+### Predicted
+
+(What the math says to expect. Edit to match what I actually guessed.)
+
+- With one marked item among N, each iteration rotates the state by
+  2*theta, where theta = arcsin(sqrt(M/N)), so
+  P(success after k iterations) = sin^2((2k+1) * theta).
+- For N=8 this gives 0.7813, 0.9453 and 0.3301 after 1, 2 and 3
+  iterations, so the third iteration should already overshoot.
+- For N=16 the best k is 3; one more iteration should lower the
+  probability, and it should come back up later, since it is a rotation.
+- With M marked items the optimal k should be about (pi/4)*sqrt(N/M), so
+  quadrupling M should halve k.
+- Quadrupling N should double Grover's k and quadruple the classical
+  average (N+1)/2, giving log-log slopes of about 0.5 and 1.
+- For N=4 with one marked item, theta = pi/6, so one iteration should
+  give probability exactly 1.
+- If half or more of the items are marked, Grover should give no benefit
+  or make things worse.
+
+### Surprised me
+
+(Keep only the ones that are true for you.)
+
+- The simulated probabilities matched sin^2((2k+1)*theta) to four
+  decimals at every step, so the rotation picture is exact, not an
+  approximation.
+- At N=16 the probability reaches 0.9613 at k=3, falls to 0.0204 at k=6,
+  then climbs to 0.9922 at k=9. More queries can hurt.
+- With M=12 of 16 items marked, a single iteration drops the success
+  probability from 0.75 to 0.0.
+- At n=20, 804 queries find the item, against about 524,288 on average
+  for classical search, roughly 650 times fewer.
+
+### Explain to someone else
+
+**The two steps.** The oracle flips the sign of the marked amplitudes,
+which does not change any measurement probability by itself. The diffusion
+step replaces every amplitude a by 2*mean - a. After the sign flip the
+marked amplitude is far below the mean, so diffusion pushes it far above,
+while all the others shrink slightly. Repeating this concentrates the
+amplitude on the marked items.
+
+**The geometry.** The state stays in a plane spanned by "marked" and
+"unmarked". Each iteration rotates it by 2*theta toward "marked", where
+sin(theta) = sqrt(M/N). After k iterations the success probability is
+sin^2((2k+1)*theta), maximized near k = (pi/4)*sqrt(N/M). Because it is a
+rotation, running past the optimum lowers the probability again.
+
+**Diffusion from gates.** Inversion about the mean equals H on every
+qubit, then a sign flip of |0...0>, then H on every qubit, then an overall
+-1. I verified this against the NumPy version using sim.py. This is the
+form a real circuit uses.
+
+**Scaling.** For M=1, n = 4, 6, ..., 20 gave k = 3, 6, 12, 25, 50, 100,
+201, 402, 804. Each +2 in n doubles k. The log-log slope of k against N is
+0.505, against 1 for classical search. This is a quadratic speedup, not
+exponential. Unstructured search cannot be done in fewer than about
+sqrt(N) queries (BBBV lower bound; I should read it before citing).
+
+### Limitations
+
+- The oracle here flips the sign of an index I already know. It
+  demonstrates the query count only, not the cost of building a real
+  oracle that evaluates a function reversibly. Stage 4b uses a cipher as
+  the function, and Stage 5 has to price the circuit.
+- The classical column (N+1)/2 is a formula, not a measurement. Stage 4b
+  measures classical brute force empirically.
+- Grover needs the number of marked items M to be known, or estimated, and
+  well below N/2. At M = N/2 it gives no gain, and above that it can hurt.
+- The statevector holds all 2^n amplitudes, so the simulation is limited
+  to about n = 25.
+- Grover's speedup is quadratic, and it parallelizes poorly: S machines
+  searching in parallel only give about a sqrt(S) speedup. That is why it
+  weakens a symmetric key's security by half the bits and not more.
+
+### Code
+
+`grover.py` (oracle, diffusion, iteration count, gate-built diffusion,
+scaling study) and `stage4a_exercises.py` (N=4, too many marked items,
+measurement sampling).

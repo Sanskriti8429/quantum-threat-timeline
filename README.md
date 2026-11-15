@@ -16,7 +16,8 @@ Given realistic error-correction overheads, how many physical qubits and how muc
 - [x] Stage 2: Math prerequisites and quantum building blocks (qubits, gates, tensor products, QFT) in a hand-built NumPy simulator
 - [x] Stage 3a: Shor's period-finding for N = 15 implemented by hand in NumPy
 - [x] Stage 3b: Shor's algorithm in Qiskit, factoring small semiprimes, cross-checked against 3a
-- [ ] Stage 4: Grover's algorithm in NumPy, then on a toy symmetric cipher, showing the empirical √N speedup
+- [x] Stage 4a: Grover's algorithm in NumPy (oracle, diffusion, optimal iteration count, √N scaling up to 2^20)
+- [ ] Stage 4b: Grover's key search on a toy symmetric cipher, with measured query counts against classical brute force
 - [ ] Stage 5: Fault-tolerant resource estimator (physical qubits, gate counts, circuit depth, runtime), validated against Gidney-Ekerå (2019), with sensitivity analysis over code distance, physical error rate, and cycle time
 - [ ] Stage 5b: Neural decoder for a small error-correcting code, compared against a classical decoder
 - [ ] Stage 6: Interactive dashboard and written report, including implications for post-quantum migration
@@ -67,3 +68,7 @@ To be added as stages are completed.
   extrapolate to RSA-scale factoring.
 - Stages 3a/3b simulate full state vectors (about 25 qubits at most) and
   model no noise or error correction.
+- Stage 4a simulates the oracle by flipping the sign of a known index, so it
+  demonstrates the query count, not the cost of building a real oracle.
+- Grover's speedup is quadratic, needs the number of marked items to be well
+  below half the search space, and parallelizes poorly.
