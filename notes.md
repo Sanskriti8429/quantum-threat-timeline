@@ -287,3 +287,81 @@ continued-fraction post-processing, the full run), `sim.py` (now with
 `qft_on` for subsets of qubits and its inverse), and
 `stage3a_exercises.py` (forward vs inverse QFT, success vs t, operation
 counts).
+
+## Stage 3b: Shor's algorithm in Qiskit
+
+### Environment
+
+Run on Google Colab (Python 3.13, numpy 2.4.6, qiskit 2.6.2,
+qiskit-aer 0.18.2), because Windows application control blocked Qiskit's
+compiled library on my local machine. All earlier stages run locally
+with numpy only.
+
+### Predicted
+
+(What the math says to expect. Edit to match what I actually guessed.)
+
+- Qiskit's circuit uses the same unitary as my hand-built simulator, so
+  the measurement distributions should match to numerical precision.
+- A hard-wired gate-level circuit for N=15 should match the generic
+  circuit for every valid a.
+- Sampling 1024 shots should give about 0.75 success for N=15, a=7 and
+  about 0.82 for N=21, a=2, t=10.
+- The CNOT count should grow quadratically with t, because of the QFT.
+
+### Surprised me
+
+(Keep only the ones that are true for you.)
+
+- The distributions matched my NumPy simulator in every case, so the
+  hand-built QFT and the circuit were right.
+- Only 2 of the controlled multiplications are non-trivial for N=15,
+  because a^(2^j) = 1 (mod 15) for j >= 2.
+- For N=15 the inverse QFT is more than half of the CNOTs (68 of 112).
+
+### Explain to someone else
+
+**Cross-check.** Version A builds each controlled multiplication as a
+permutation matrix (UnitaryGate) and uses Qiskit's inverse QFT. Its
+measurement distribution matches my NumPy simulator for N=15 (a=7, 2, 11)
+and N=21 (a=2). Qiskit is little-endian (qubit 0 is the least significant
+bit), so qubit j controls multiplication by a^(2^j); the integer value
+of the counting register is then the same m as in my simulator.
+
+**Gate-level N=15.** Multiplying by 2^s mod 15 is a cyclic rotation of the
+four work bits (controlled swaps), and multiplying by -1 flips all four
+bits. Every unit mod 15 is +-2^s, so this covers all the bases. After
+transpiling to {CNOT, single-qubit} gates, the a=7, t=8 circuit has 112
+CNOTs, 141 single-qubit gates, and depth 119. The CNOT count splits as
+5 controlled swaps x 8 + 4 + 68 for the inverse QFT.
+
+**Scaling with t (a=7).** CNOTs = 44 + t(t-1) + 3*floor(t/2): 62, 83, 112,
+149, 194 for t = 4, 6, 8, 10, 12. The 44 is fixed (two non-trivial
+controlled multiplications); the rest is the QFT, which grows like t^2.
+
+**Sampling.** Aer sampling of 1024 shots with the same classical
+post-processing gave 764/1024 = 0.746 for N=15, a=7 (theory 0.75) and
+838/1024 = 0.818 for N=21, a=2, t=10 (matches the exact value 0.818).
+
+### Limitations
+
+- The N=15 circuit is hard-wired. The rotation trick works because
+  15 = 2^4 - 1 and does not generalize to other N.
+- It skips the multiplications that equal 1 (mod 15). That uses the fact
+  that the order divides 4, which is close to knowing the answer in
+  advance. This is a known criticism of "factored 15" demonstrations
+  (Smolin, Smith and Vargo, 2013, "Oversimplifying quantum factoring";
+  I should read it before citing it). The CNOT counts here cannot be
+  extrapolated to RSA-2048.
+- The inverse QFT is over half the CNOTs only because the arithmetic is
+  trivial for N=15. At RSA scale modular arithmetic dominates.
+- Version A uses a lookup-table unitary, with the same limitation as
+  stage 3a: it shows correctness, not honest resource counts.
+- Everything here is exact or sampled statevector simulation, so it is
+  limited to about 25 qubits and does not model noise or error
+  correction.
+
+### Code
+
+`shor_qiskit.py`: generic and N=15 gate-level circuits, cross-check
+against `shor_quantum.py` / `sim.py`, gate counts, and Aer sampling.
