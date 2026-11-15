@@ -30,7 +30,7 @@ AES-128, and how does that compare with current hardware trajectories?
 - [x] Stage 4b: Grover's key search on a toy symmetric cipher, with measured query counts against classical brute force
 - [x] Stage 5a: Read Gidney-Ekerå (2019) and summarize its cost model
 - [x] Stage 5b: Error-correction basics behind the model (logical vs. physical qubits, code distance, logical error rate, magic-state factories)
-- [ ] Stage 5c: Estimator v0 that reproduces the paper's section 2 hand calculations
+- [x] Stage 5c: Estimator v0 that reproduces the paper's section 2 hand calculations
 - [ ] Stage 5d: Full parameter search reproducing Table 3 rows (n = 1024 to 4096), with divergences documented
 - [ ] Stage 5e: Sensitivity analysis (physical error rate, cycle time, reaction time, code distance) and comparison with newer published estimates
 - [ ] Stage 5f: Grover/AES-128 counterpart: oracle cost and sequential depth
@@ -72,6 +72,7 @@ locked-down Windows machines Qiskit's compiled library is blocked.
 | 3a/3b | N = 15 (8 counting qubits): peaks at 0, 64, 128, 192 with probability 0.25 each, 0.75 success per shot. N = 21 (10 counting qubits): 0.818 per attempt, with a ceiling of 5/6. The Qiskit circuits match the hand-built simulator in every case tested |
 | 3b | Hard-wired N = 15 circuit (a = 7, 8 counting qubits): 112 CNOTs, depth 119 after transpiling. This does not extrapolate to RSA scale (see limitations) |
 | 4a/4b | Grover finds the key of a toy cipher with 12 to 804 oracle queries for 8 to 20 key bits. Measured log-log slopes against search-space size: 0.504 for Grover and 1.004 for classical brute force |
+| 5c | Estimator v0 reproduces Gidney-Ekerå's section 2 numbers for n = 2048 (6.9 h, 26.5% topological error, 22.3 M qubits, retry risk 31.9% against 31%). With unrounded formulas the per-run runtime is 5.0 h against Table 3's 5.1 h, and Toffoli counts are within 5% of Table 1 for n = 1024 to 3072. The retry risk (24.5% against 31%) is not yet reproduced (stage 5d) |
 
 ## Known limitations
 
@@ -101,3 +102,10 @@ locked-down Windows machines Qiskit's compiled library is blocked.
   solution when there are 18 dropped the success probability to 0.14.
 - Stage 5b uses a heuristic logical-error rule (valid only below threshold)
   and an idealized distillation formula, not the paper's factory model.
+- Stage 5c implements the paper's simplified model without its parameter
+  search: one code distance for the whole machine, a fixed layout and a fixed
+  distillation error per CCZ state. The retry risk is about 25% against the
+  paper's 31%, and qubit counts overshoot by 12% to 15% where the paper uses
+  a level 1 distance of 15.
+- The paper's Eq. (2) is printed with 2^(c_exp + c_pad) where its own
+  numbers require 2^(c_exp + c_mul); the estimator uses the latter.

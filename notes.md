@@ -783,3 +783,124 @@ parameter search.
 checked against the paper's rule, topological error for the n = 2048
 workload, required distance versus physical error rate, patch sizes and
 15-to-1 distillation.
+
+## Stage 5c: Estimator v0 (Gidney-Ekerå section 2 cost model)
+
+### Predicted
+
+(What the formulas say to expect. Edit to match what I actually guessed.)
+
+- The unrounded model should give a per-run runtime near Table 3's 5.1 h,
+  because Table 3 comes from the authors' script, which does not round.
+  The simplified model should give about 7 h, as in section 2.11.
+- A shorter runtime means fewer surface code cycles, so less topological
+  error and a lower retry risk than Table 3's 31%.
+- Qubit counts for n = 1024 and 2048 should overshoot Table 3, because those
+  rows use d1 = 15 and my layout assumes the d1 = 17 one.
+- Toffoli counts should land within a few percent of Table 1.
+
+### Surprised me
+
+(Keep only the ones that are true for you.)
+
+- The paper's Eq. (2) prints 2^(c_exp + c_pad) in the Toffoli cost of a
+  lookup addition, but with c_pad about 44 that gives 2.07e20 Toffolis,
+  against 2.59e9 with 2^(c_exp + c_mul) (section 2.5) and 2.7e9 in Table 1.
+  So it is a typo in the printed paper.
+- The 7 h in section 2.11 and the 5.1 h in Table 3 differ because the text
+  rounds 2/25 = 0.08 up to 0.1 in Eq. (1). Mixing the rounded and the
+  unrounded figures gives misleading results: the simplified 6.89 h with
+  its 31.9% risk gives 10.1 h expected, while the paper's 7.4 h uses 5.1 h.
+- The detailed model reproduces the per-run runtime (4.99 h against 5.1 h)
+  but not the retry risk (24.5% against 31%).
+- Faster surface code cycles can make things worse: at 0.2 us the
+  per-run runtime only falls from 4.99 h to 3.47 h, because the addition
+  phase is limited by the 10 us reaction time, while the number of cycles
+  grows about 5x.
+
+### Explain to someone else
+
+**What the estimator does.** It takes the modulus size n, the window sizes
+c_exp and c_mul, the runway spacing c_sep, the padding offset, the code
+distance d, and the cycle and reaction times. It computes the number of
+lookup additions (2 n n_e / (c_exp c_mul) * (c_sep + 1) / c_sep), the
+Toffoli count and measurement depth, the runtime (each lookup addition
+takes a code-depth-limited lookup phase d/2 * 2^(c_exp + c_mul) cycles,
+plus a reaction-limited addition phase 2 (c_sep + c_pad) reaction times,
+plus about 1 ms), the logical qubit grid (113 w x 63, w = n / c_sep), the
+physical qubits (grid x 2 (d+1)^2) and the error budget: topological
+(runtime in cycles x 75% of the grid x 10^-(ceil(d/2)+1), as a union
+bound), distillation (about 2.1e-11 per CCZ state), approximation
+(2 sqrt of the deviation in Eq. 4) and classical post-processing (1%).
+They are combined assuming independence into a retry risk, and the
+expected runtime is the per-run runtime divided by (1 - risk).
+
+**Results for n = 2048, d = 27.**
+
+| Quantity | Simplified | Detailed | Paper |
+|---|---|---|---|
+| Lookup additions | 6.20e5 | 4.97e5 | 0.1 n_e n = 6.2e5 |
+| Toffolis | 2.58e9 | 2.59e9 | 2.7e9 (Table 1) |
+| Runtime per run | 6.89 h | 4.99 h | 7 h (sec 2.11); 5.1 h (Table 3) |
+| Physical qubits | 22.3 M | 22.3 M | 23 M (text); 20 M (Table 3) |
+| P(topological) | 26.5% | 19.2% | 27% |
+| Retry risk | 31.9% | 24.5% | 31% (Table 3) |
+| Expected runtime | 10.1 h | 6.6 h | 7.4 h |
+| Expected volume | 9.4 Mqd | 6.2 Mqd | 5.9 Mqd |
+
+**Other sizes (detailed mode, Table 3 parameters).** Toffolis are within
+5% of Table 1 (0.38, 2.58, 9.52 billion against 0.4, 2.7, 9.9). Runtimes
+per run are within 8% (1.2, 5.0, 11.6, 21.1 h against 1.3, 5.1, 12, 22).
+Qubits match within 1% to 6% for n = 3072 and 4096 but overshoot by 15%
+and 12% for n = 1024 and 2048.
+
+**What changes when hardware changes.** At d = 27 a 5x faster cycle gives a
+worse expected volume (10.3 Mqd against 6.15) because the addition phase is
+reaction limited and the number of cycles grows 5x. A 5x faster reaction
+time halves the volume (2.92 Mqd), and both together give 1.40 Mqd.
+Table 2's remark that a 5x faster cycle reduces volume 5x applies to
+designs where the cycle time is the bottleneck, which this one is not.
+
+**d = 27 versus 29.** In this model d = 29 lowers the topological error
+from 19.2% to 2.0% and the expected runtime from 6.6 h to 5.6 h while
+adding 15% qubits. The paper's objective s^1.2 * t_expected is 0.9997 of
+the d = 27 value, a tie, so the paper's choice of 27 comes from something
+this model does not include.
+
+### Open questions for stage 5d
+
+1. **Retry risk gap (24.5% against 31%).** One lead, not established: if
+   all logical qubits are counted in the topological error instead of 75%,
+   the detailed model gives 25.6% topological error, a 30.4% risk and 7.18 h
+   expected runtime. But section 2.13 says the factory qubits are
+   already accounted for in the distillation error, so this may double
+   count. The authors' script would settle it.
+2. **Qubits for d1 = 15 rows.** Table 3 rows with d1 = 15 (n = 1024 and 2048)
+   are the ones my layout overshoots, consistent with the remark in
+   section 2.14 that reducing d1 from 17 to 15 changes the layout.
+3. **Distillation error per CCZ.** I use the paper's 6.4% for 3e9 states at
+   d1 = 17, d2 = 27 for every n. It depends on d1 and d2 and cannot be
+   derived from the paper's text alone, so risks for other n are not
+   validated.
+4. **d = 27 versus 29** (above).
+
+### Limitations
+
+- v0 implements the simplified model of section 2 with no parameter search.
+  The layout (113-wide pieces, 63 rows, 25% factories), a single code
+  distance for the whole machine and the per-CCZ distillation error are
+  fixed.
+- The logical error rule 10^-(ceil(d/2)+1) holds only at a physical error
+  rate of 10^-3. Other error rates need the heuristic from stage 5b.
+- The topological error is a union bound (an upper bound), as in the
+  paper's method.
+- The 0.06% approximation error is lower than the paper's rounded 0.1%,
+  as expected (2 sqrt(1e-7) = 0.063%).
+- The tests use explicit tolerances (3% to 16%). One test pins the known
+  retry risk gap so that it cannot be forgotten.
+
+### Code
+
+`estimator.py` (the model, two modes, comparison tables) and
+`test_estimator.py` (the stage 5a checkpoints as seven unit tests, run
+with `python -m unittest -v test_estimator`).
