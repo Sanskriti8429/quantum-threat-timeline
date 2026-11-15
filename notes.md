@@ -532,3 +532,148 @@ M = 18 and the M = 1 count, success was 0.1398.
 `grover_keysearch.py` (Grover vs classical search, scaling slopes,
 extrapolation), and `stage4b_exercises.py` (number of known pairs, wrong
 M, query ratios).
+
+## Stage 5a: Reading Gidney and Ekerå (2019)
+
+Source: C. Gidney and M. Ekerå, "How to factor 2048 bit RSA integers in 8
+hours using 20 million noisy qubits", Quantum 5, 433 (2021),
+arXiv:1905.09749v3. All numbers below come from that version's text and
+tables. Formulas came from extracted PDF text, so each must be checked
+against the PDF before it goes into code.
+
+### Summary
+
+The paper costs out Shor's factoring algorithm on a stated hardware
+model: a planar grid of superconducting qubits with nearest-neighbor
+connectivity, a physical gate error rate of 10^-3, a surface code cycle
+time of 1 microsecond and a classical reaction time of 10 microseconds.
+Almost all of the cost is the modular exponentiation, which is a sequence
+of controlled modular multiplications. The QFT is nearly free because it
+is done semi-classically (Griffiths-Niu), interleaved with the
+multiplications, with the control qubits recycled.
+
+Four ideas cut the cost. (1) The Ekerå-Håstad variant computes a short
+discrete logarithm, which needs about 1.5n exponent qubits instead of
+2n, so fewer multiplications. (2) Windowed arithmetic fuses groups of
+c_exp exponent qubits and c_mul multiplier qubits into table lookups, so
+the number of additions falls by about c_exp * c_mul, but each lookup
+costs about 2^(c_exp + c_mul) Toffolis. (3) The coset representation of
+modular integers lets cheap non-modular adders (4n Toffolis when
+controlled) replace modular adders (about 10n), at the price of padding
+qubits and a small approximation error. (4) Oblivious carry runways split
+a register into pieces that are added in parallel, which cuts depth at a
+small cost in qubits and Toffolis. In the abstract circuit model this
+gives 3n + 0.002 n lg n logical qubits, 0.3 n^3 + 0.0005 n^3 lg n
+Toffolis and 500 n^2 + n^2 lg n measurement depth.
+
+To turn this into physical numbers, each logical qubit is a surface code
+patch of 2(d+1)^2 physical qubits, and the logical error per cycle is
+assumed to be 10^(-ceil(d/2 + 1)) at a physical error rate of 10^-3
+(each increase of d by 2 suppresses errors 10x). For n = 2048 the paper
+uses d = 27 and a grid of 226 x 63 logical qubits, about 25% of which
+make magic states (CCZ factories). A run lasts about 25 billion cycles,
+which gives about 27% probability of a topological error, so a run is
+repeated about 1.4 times on average. Distillation (about 6.4%),
+approximation (about 0.1%) and post-processing failures add to the retry
+risk. The authors search over code distances, window sizes, runway
+spacing, padding and factory type, and minimize s^1.2 * t / (1 - risk),
+where s is physical qubits and t is runtime per run. The result for
+n = 2048 is 20 million physical qubits, 5.1 hours per run, retry risk 31%,
+so about 7.4 hours expected (the title rounds to 8) and an expected
+volume of 5.9 megaqubitdays, over 100x less than earlier comparable
+estimates.
+
+The authors warn that these are ballpark figures with large systematic
+uncertainties: for example, doubling or halving the physical error rate
+changes the qubit count by more than 10%. Their own estimates also rest
+on assumptions from other papers (the CCZ factory and layout models), so
+they cannot be reproduced exactly from this paper alone.
+
+### Answers to the reading questions
+
+1. **Why is the QFT negligible?** It is done semi-classically and
+   interleaved with the multiplications. Only the control qubits for the
+   current window are needed and they are recycled, and the phase shifts
+   combine into one classically controlled rotation.
+2. **What does each optimization trade?** Windowing trades fewer
+   additions for exponentially larger lookups (2^(c_exp + c_mul)). The
+   coset representation trades padding qubits and a small approximation
+   error for cheaper adders. Runways trade a few extra qubits and
+   Toffolis (linear in n / c_sep) and a small approximation error for
+   parallel, shallower additions; they do not speed up lookups, so the
+   best window sizes shrink by about 1.
+3. **Why 1.5n exponent qubits?** Ekerå-Håstad computes d = p + q with two
+   exponent registers of 2m and m qubits where m is about n/2, so 3m =
+   1.5n, against 2n in Shor's original. Post-processing is lattice-based
+   and succeeds with at least 99% probability in one run.
+4. **Reaction limited.** The adder is a chain of dependent Toffolis. Each
+   needs a measurement result and a classical decision before the next
+   step, which takes the reaction time (10 microseconds). An addition
+   therefore takes about 2(c_sep + c_pad) reaction times regardless of
+   how many factories exist.
+5. **Spacetime volume.** Qubits times time. The authors minimize
+   s^1.2 * t / (1 - risk) so that a slight preference for fewer qubits
+   is built in and expected retries are included.
+6. **25 billion cycles and d = 27.** Runtime is about 4 n_e n ms, which at
+   one cycle per microsecond is about 2.5e10 cycles. Then 10^-15 *
+   (226 * 63 * 0.75 logical qubits) * 2.5e10 is about 27%. d = 29 would
+   cut the error about 10x for about 15% more qubits.
+7. **The rule of thumb.** V(p) is about V(0.1%) / (-log10(p) - 2)^3.
+   Each +2 in d suppresses errors by about threshold / p (threshold about
+   1%), so at p = 0.01% distances are about half as large. The
+   computation packs into three dimensions (two space, one time), so
+   volume scales as distance cubed: 8x smaller at 0.01% and 27x at
+   0.001%. Limits: ignores rounding of d, the fixed reaction time, and a
+   change of code at very low error rates; the paper calls it an
+   order-of-magnitude guide for about 0.3% to 0.001%.
+8. **Table 2's caption.** A cycle time 5x more optimistic reduces the
+   expected volume 5x, so volumes from different papers are only
+   comparable when their assumptions are normalized.
+
+### Checkpoints (n = 2048, d = 27, c_exp = c_mul = 5, c_sep = 1024)
+
+n_e = 3029 comes from the expression printed in Table 3 (to verify in the
+PDF). "Recomputed" values were computed from the paper's formulas.
+
+| Quantity | Paper | Recomputed |
+|---|---|---|
+| Logical error per cycle, d = 27 | 10^-15 | 10^-15 |
+| Surface code cycles | about 25 billion | 2.48e10 |
+| Topological error probability | about 27% | 26.5% |
+| Lookup phase | about 14 ms | 13.8 ms |
+| Addition phase | about 22 ms | 21.4 ms |
+| One lookup addition | about 37 ms | about 36 ms |
+| Lookup additions | about 0.1 n_e n = 6.2e5 | 5.0e5 (leading term 2 n n_e / 25) |
+| Toffoli (CCZ) count | about 3 billion | 2.6e9 |
+| Runtime, one run | about 7 h (section 2.11) | 5.0 h; Table 3 lists 5.1 h |
+| Physical qubits | about 23 M (text), 20 M (Table 3) | 22.3 M (226 * 63 * 1568) |
+| Expected runtime from Table 3 | title says 8 h | 5.1 / (1 - 0.31) = 7.4 h |
+
+### Things I found inconsistent or unsure about
+
+- Section 2.11 says about 7 hours per run, but Table 3 says 5.1 hours.
+  The difference is the coefficient in Eq. (1): the paper rounds
+  2/25 = 0.08 up to 0.1, a 25% difference. The 0.1 also absorbs the
+  lookup term in the Toffoli count (1024 / 4096 = 25%), which is why the
+  Toffoli count comes out consistent either way. My estimator should use
+  the unrounded form and report both.
+- Eq. (2) as extracted shows 2^(c_exp + c_pad) in the Toffoli cost of a
+  lookup addition, but section 2.5 gives the lookup cost as
+  2^(c_exp + c_mul). With c_pad near 44 the first would be absurd, so it
+  is presumably an extraction error or typo. To check in the PDF.
+- The text says about 23 million physical qubits at d = 27, but
+  226 * 63 * 1568 is about 22.3 million. The paper itself says that
+  section is "sloppily rounding" and the 20 million in the title comes
+  from the ancillary script, which also lowers the level 1 distillation
+  distance from 17 to 15.
+- The title's "8 hours" is the expected runtime rounded up from about
+  7.4 hours.
+
+### What I need to reproduce this fully
+
+The CCZ factory footprint and distillation error model (Gidney-Fowler
+2019), the layout details (113w x 63 grid, 14 factories at d = 27), and
+the parameter search ranges (d1 in 15 to 23, d2 in 25 to 51, c_mul and
+c_exp in 4 to 6, c_sep in {512, 768, 1024, 1536, 2048}, padding offset
+2 to 10, CCZ or T factory). The authors' script ("estimate costs.py") is
+listed as an ancillary file on the arXiv page.
