@@ -29,7 +29,7 @@ AES-128, and how does that compare with current hardware trajectories?
 - [x] Stage 4a: Grover's algorithm in NumPy (oracle, diffusion, optimal iteration count, √N scaling up to 2^20)
 - [x] Stage 4b: Grover's key search on a toy symmetric cipher, with measured query counts against classical brute force
 - [x] Stage 5a: Read Gidney-Ekerå (2019) and summarize its cost model
-- [ ] Stage 5b: Error-correction basics behind the model (logical vs. physical qubits, code distance, logical error rate, magic-state factories)
+- [x] Stage 5b: Error-correction basics behind the model (logical vs. physical qubits, code distance, logical error rate, magic-state factories)
 - [ ] Stage 5c: Estimator v0 that reproduces the paper's section 2 hand calculations
 - [ ] Stage 5d: Full parameter search reproducing Table 3 rows (n = 1024 to 4096), with divergences documented
 - [ ] Stage 5e: Sensitivity analysis (physical error rate, cycle time, reaction time, code distance) and comparison with newer published estimates
@@ -99,3 +99,5 @@ locked-down Windows machines Qiskit's compiled library is blocked.
   extrapolations, not simulations.
 - Grover's iteration count depends on the number of solutions: assuming one
   solution when there are 18 dropped the success probability to 0.14.
+- Stage 5b uses a heuristic logical-error rule (valid only below threshold)
+  and an idealized distillation formula, not the paper's factory model.

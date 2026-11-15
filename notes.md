@@ -677,3 +677,109 @@ the parameter search ranges (d1 in 15 to 23, d2 in 25 to 51, c_mul and
 c_exp in 4 to 6, c_sep in {512, 768, 1024, 1536, 2048}, padding offset
 2 to 10, CCZ or T factory). The authors' script ("estimate costs.py") is
 listed as an ancillary file on the arXiv page.
+
+## Stage 5b: Error-correction basics behind the cost model
+
+### Predicted
+
+(What the math says to expect. Edit to match what I actually guessed.)
+
+- A majority-vote repetition code should suppress errors with more
+  copies below p = 0.5, do nothing at exactly 0.5, and make things worse
+  above it.
+- The heuristic p_L = 0.1 * (p / p_th)^((d+1)/2) with p_th = 1% should
+  match the paper's 10^-(ceil(d/2)+1) at p = 10^-3 for odd d.
+- Multiplying qubit-cycles by p_L should give about 27% topological
+  error at d = 27, about 10x less at d = 29 and about 10x more at d = 25.
+- A 10% error budget at p = 10^-3 should need d around 29.
+- Distance should shrink as p falls (about half at p = 10^-4) and blow up
+  as p approaches the threshold, with no solution at p = 10^-2.
+- One round of 15-to-1 distillation from 10^-3 should give about
+  35 * (10^-3)^3 = 3.5e-8, which is not enough for 2e-11 per state.
+
+### Surprised me
+
+(Keep only the ones that are true for you.)
+
+- The paper's per-cycle logical error rule is a special case of the
+  usual heuristic: p_L = 0.1 * (p / p_th)^((d+1)/2) with p = 0.1 * p_th.
+- Required distance grows slowly at first and then explodes: 15, 19,
+  29, 41, 55, 95, 297 for p = 1e-4, 3e-4, 1e-3, 2e-3, 3e-3, 5e-3, 8e-3.
+  The physical qubits for the 14,238 logical qubits go 7.3 M, 11.4 M,
+  25.6 M, 50.2 M, 89.3 M, 262 M, 2,529 M.
+- A 10x tighter error budget (10% to 1%) costs only +2 in distance
+  (29 to 31).
+- Two ideal rounds of 15-to-1 distillation from 10^-3 reach 1.5e-21,
+  which is far more than the 2e-11 the paper needs, so real factories
+  must be doing something less ideal.
+
+### Explain to someone else
+
+**Why correct errors at all.** A physical gate fails about once in 1000
+(p = 10^-3). The paper's computation has about 2.65e14 logical
+qubit-cycles and must keep the total topological failure near 10%, so
+each logical qubit-cycle must fail less than about once in 10^15.
+
+**Redundancy and threshold.** With d copies and a majority vote, the
+logical error falls exponentially in d when p is below the threshold
+(0.5 for this classical code), stays flat at the threshold and rises
+above it. Quantum codes cannot copy states, so they spread information
+over entangled qubits and measure parity checks, and they must also
+handle phase errors. The surface code has a threshold of about 1%.
+
+**The surface code.** A logical qubit is a patch of data qubits and
+measurement qubits. Measurement qubits check parities every cycle (1
+microsecond), and a classical decoder uses the pattern of failed checks
+to guess the errors. Distance d is the smallest number of physical
+errors that can cause an undetected logical error. A heuristic for the
+logical error per cycle is 0.1 * (p / p_th)^((d+1)/2), so each +2 in d
+multiplies the error by p / p_th (0.1 at p = 10^-3, 0.01 at p = 10^-4).
+A bare patch has 2 d^2 - 1 physical qubits (1,457 at d = 27); the paper
+counts 2 (d+1)^2 (1,568) because it includes spacing between patches.
+
+**Non-Clifford gates and magic states.** Clifford gates are cheap
+(lattice surgery). Toffoli/CCZ gates need magic states, which factories
+make by distillation. One ideal round of 15-to-1 distillation turns 15
+states of error p into one of error about 35 p^3. The paper needs about
+3 billion CCZ states with total error about 6.4%, so about 2e-11 each.
+
+**Cost versus physical error rate.** For the n = 2048 workload and a 10%
+budget, the required distance rises from 15 (p = 1e-4) through 29
+(p = 1e-3) to 95 (p = 5e-3) and diverges at the threshold. Cost does not
+scale linearly with p: the overhead explodes as p approaches p_th.
+
+### Open question for 5d
+
+The paper picks d = 27 (about 27% topological failure) rather than
+d = 29 (2.6%). My crude model (qubits ~ (d+1)^2 raised to 1.2, lookup time
+~ d, other time fixed, risk 31% to 7%) gives about 0.90 for the ratio of
+d = 29 to d = 27, i.e. slightly in favour of 29. The paper's full search
+must contain effects my model leaves out (factory distances, layout
+granularity, number of factories). To investigate when reproducing the
+parameter search.
+
+### Limitations
+
+- The 0.1 * (p / p_th)^((d+1)/2) rule is a heuristic fitted to
+  simulations and only valid below threshold. Values near or above
+  threshold (the 297 at p = 8e-3, the "none" at 1e-2, probabilities above
+  1) are artifacts of the formula, not predictions.
+- The repetition code is an analogy for the shape of the curve. Its
+  threshold (0.5) is not the surface code's (about 1%), because the
+  surface code must also handle noisy syndrome measurements and two kinds
+  of error.
+- Section 4 gives every logical patch the same distance. The paper's
+  layout uses different distances inside the factories.
+- The 35 p^3 distillation formula describes one ideal level. The paper's
+  factories are different designs with their own error models
+  (Gidney-Fowler 2019) and are not reproduced here.
+- Decoder quality is folded into the heuristic. A better decoder changes
+  p_th and the prefactor, which is where a neural decoder (stage 5g) would
+  enter.
+
+### Code
+
+`ec_basics.py`: repetition code, surface-code logical error heuristic
+checked against the paper's rule, topological error for the n = 2048
+workload, required distance versus physical error rate, patch sizes and
+15-to-1 distillation.
