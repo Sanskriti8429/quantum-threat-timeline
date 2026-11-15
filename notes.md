@@ -449,3 +449,86 @@ sqrt(N) queries (BBBV lower bound; I should read it before citing).
 `grover.py` (oracle, diffusion, iteration count, gate-built diffusion,
 scaling study) and `stage4a_exercises.py` (N=4, too many marked items,
 measurement sampling).
+
+## Stage 4b: Grover's key search on a toy cipher
+
+### Predicted
+
+(What the math says to expect. Edit to match what I actually guessed.)
+
+- Three known plaintext/ciphertext pairs give 48 bits of constraint, more
+  than the key length n <= 20, so only the true key should match (M = 1).
+- Grover's query counts should equal the stage 4a table: 12, 25, 50, 100,
+  201, 402, 804 for n = 8, 10, ..., 20.
+- Classical brute force in random order should need about (N+1)/2 queries.
+  A mean over 100 trials should be within roughly 10% of that.
+- Log-log slopes should be about 0.5 for Grover and 1 for classical.
+- With only 1 pair at n = 20, about 1 + 2^20 / 2^16 = 17 keys should match,
+  so assuming M = 1 would make Grover rotate past the target.
+- For a 128-bit key the classical/Grover ratio should be around 10^19.
+
+### Surprised me
+
+(Keep only the ones that are true for you.)
+
+- The toy cipher mixes well: flipping one key bit changes 8.02 of 16
+  ciphertext bits on average, and one plaintext bit changes 7.76.
+- Measured classical means (122.8, 528.9, 1898.7, ...) scatter by up to
+  about 7% around (N+1)/2, but the slope across n is still 1.004.
+- With 1 pair, M = 18 (17 false matches plus the true key). Running the
+  iteration count for M = 1 (804) gives success probability only 0.1398,
+  matching the formula exactly.
+
+### Explain to someone else
+
+**The attack.** Given known pairs (P_i, C_i) from one secret key, define
+f(k) = 1 if Enc_k(P_i) = C_i for every i. Grover searches over all 2^n
+keys for f(k) = 1. Each pair constrains 16 bits, so 3 pairs fix a key of
+up to 48 bits.
+
+**The oracle in the simulation.** I evaluate the cipher on every key
+classically once (matching_keys), then the oracle flips the sign of those
+keys. A real oracle would evaluate the cipher reversibly in superposition.
+A "query" here is one oracle call.
+
+**Results.** Grover found the key every time (success 0.9995 or higher)
+with 12, 25, 50, 100, 201, 402, 804 queries for n = 8 ... 20. Classical
+brute force in random order took about N/2 (mean over 100 trials, measured
+by the position of the key in a random permutation, which equals the
+number of cipher evaluations). The log-log slopes are 0.504 and 1.004,
+confirming the quadratic speedup on a real key-search problem.
+
+**Extrapolation (formulas only, not simulated).** A 128-bit key needs
+about (pi/4) * 2^64 = 2^63.7 sequential Grover iterations against 2^127
+classically, so Grover roughly halves the key length in bits: AES-128
+drops to about 64 bits and AES-256 to about 128 bits of query complexity.
+
+**Sensitivity to M.** The iteration count depends on the number of
+solutions. Underestimating M rotates the state past the target: with
+M = 18 and the M = 1 count, success was 0.1398.
+
+### Limitations
+
+- The cipher is a toy with a simple key schedule and is not secure. It
+  only gives Grover a real function to search; Grover's query count
+  depends on N and M, not on the cipher's internals.
+- The oracle is built by classically evaluating all keys. A real oracle
+  is a reversible cipher circuit, and its cost (qubits, gates, depth,
+  uncomputation) is not counted here. Query counts are therefore not
+  runtimes. Stage 5 has to price the oracle.
+- Classical query counts are measured through a precomputed table of
+  matching keys, not by calling the cipher once per guess. The count is
+  the same.
+- Grover needs M known or estimated. Algorithms exist for unknown M
+  (Boyer, Brassard, Hoyer and Tapp, 1998; I should read it before citing).
+- Grover parallelizes poorly: S machines give only about a sqrt(S)
+  speedup in time while total work grows.
+- The statevector holds 2^n amplitudes, so the simulation stops near
+  n = 25. The 56/128/256-bit rows are formula extrapolations.
+
+### Code
+
+`toy_cipher.py` (16-bit SPN, key schedule, known-pair key matching),
+`grover_keysearch.py` (Grover vs classical search, scaling slopes,
+extrapolation), and `stage4b_exercises.py` (number of known pairs, wrong
+M, query ratios).
