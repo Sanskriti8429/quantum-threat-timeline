@@ -32,7 +32,8 @@ AES-128, and how does that compare with current hardware trajectories?
 - [x] Stage 5b: Error-correction basics behind the model (logical vs. physical qubits, code distance, logical error rate, magic-state factories)
 - [x] Stage 5c: Estimator v0 that reproduces the paper's section 2 hand calculations
 - [x] Stage 5d: Full parameter search reproducing Table 3 rows (n = 1024 to 4096), with divergences documented
-- [ ] Stage 5e: Sensitivity analysis (physical error rate, cycle time, reaction time, code distance) and comparison with newer published estimates
+- [x] Stage 5e (part 1): Sensitivity analysis over physical error rate, cycle time and reaction time, re-optimizing the design at each setting
+- [ ] Stage 5e (part 2): Comparison with newer published estimates (Gidney 2025; 2026 QLDPC and neutral-atom results)
 - [ ] Stage 5f: Grover/AES-128 counterpart: oracle cost and sequential depth
 - [ ] Stage 5g (optional): Neural decoder for a small error-correcting code, compared against a classical decoder, with results fed into the estimator
 - [ ] Stage 6: Interactive dashboard and written report, including implications for post-quantum migration
@@ -74,6 +75,7 @@ locked-down Windows machines Qiskit's compiled library is blocked.
 | 4a/4b | Grover finds the key of a toy cipher with 12 to 804 oracle queries for 8 to 20 key bits. Measured log-log slopes against search-space size: 0.504 for Grover and 1.004 for classical brute force |
 | 5c | Estimator v0 reproduces Gidney-Ekerå's section 2 numbers for n = 2048 (6.9 h, 26.5% topological error, 22.3 M qubits, retry risk 31.9% against 31%). With unrounded formulas the per-run runtime is 5.0 h against Table 3's 5.1 h, and Toffoli counts are within 5% of Table 1 for n = 1024 to 3072. The retry risk (24.5% against 31%) is not yet reproduced (stage 5d) |
 | 5d | With a reconstructed factory-error model (calibrated on two published anchors), the estimator reproduces Gidney-Ekerå's Table 3 rows: Toffolis within 5%, runtimes within 8%, qubits within 6%, retry risks within 3 points (n = 2048: 34% against 31%). A grid search of 28,350 parameter sets per n puts the paper's chosen parameters in the top 0.2%, within 3.6% of my optimum |
+| 5e | Re-optimized for each hardware setting (n = 2048): worse physical error rates cost qubits, not time (2x10^-3: 2.7x the qubits for 12% more runtime per run). The paper's rule of thumb holds within about 30% from p = 10^-4 to 2x10^-3. A 5x faster reaction time reduces the expected volume to 0.36x, a 5x faster cycle only to 0.68x. At p = 5x10^-3 no feasible design exists in the search ranges |
 
 ## Known limitations
 
@@ -116,3 +118,11 @@ locked-down Windows machines Qiskit's compiled library is blocked.
   paper's parameter choices sit near the optimum of the search, but the
   objective is flat there, so this is weak evidence.
 - The physical error rate is fixed at 10^-3 in the estimator so far.
+- Stage 5e's dependence on the physical error rate is an extrapolation (the
+  standard error-suppression scaling and an assumed 35p^3 distillation
+  floor), and its qubit counts at p >= 2x10^-3 rest on a factory footprint
+  assumption fitted only between d1 = 15 and 17. Orderings are more
+  trustworthy than absolute numbers away from p = 10^-3.
+- All estimates are for one architecture (planar surface code with
+  nearest-neighbor connectivity); other codes and hardware are compared in
+  part 2, not modeled.

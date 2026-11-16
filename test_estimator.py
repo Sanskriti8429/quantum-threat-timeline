@@ -7,7 +7,7 @@ from estimator import (
     logical_error_per_cycle,
     p_ccz,
     C2,
-    EPS_T_DIST,
+    EPS_T_DIST_REF,
     seconds_per_lookup_addition,
     lookup_additions
 )
@@ -38,9 +38,8 @@ class TestSection2(unittest.TestCase):
         self.detail = estimate(self.P, simplified=False)
 
     def test_logical_error_rule(self):
-        self.assertEqual(logical_error_per_cycle(25), 1e-14)
-        self.assertEqual(logical_error_per_cycle(27), 1e-15)
-        self.assertEqual(logical_error_per_cycle(29), 1e-16)
+        for d, expected in ((25, 1e-14), (27, 1e-15), (29, 1e-16)):
+            self.assertTrue(within(logical_error_per_cycle(d), expected, 1e-9))
 
     def test_lookup_addition_phases(self):
         lookup, addition, other = seconds_per_lookup_addition(self.P)
@@ -72,7 +71,7 @@ class TestDistillationModel(unittest.TestCase):
     def test_anchors(self):
         self.assertTrue(within(p_ccz(17, 27), 0.064 / 3e9, 1e-9))
         self.assertTrue(within(p_ccz(15, 31), 5.3e-11, 0.06))
-        self.assertTrue(within(28 * EPS_T_DIST ** 2, 3.4e-14, 0.05))
+        self.assertTrue(within(28 * EPS_T_DIST_REF ** 2, 3.4e-14, 0.05))
         self.assertGreater(C2, 0)
 
     def test_order_of_magnitude_at_d1_19(self):

@@ -3,12 +3,19 @@ from dataclasses import dataclass
 
 lg = math.log2
 
-EPS_T_DIST = 3.5e-8
-EPS_T_TOPO_15 = 1.4e-6 - EPS_T_DIST
+P_REF = 1e-3
+P_TH = 1e-2
+EPS_T_DIST_REF = 3.5e-8
+EPS_T_TOPO_15 = 1.4e-6 - EPS_T_DIST_REF
 
 
-def eps_t1(d1):
-    return EPS_T_DIST + EPS_T_TOPO_15 * 10.0 ** (-(d1 - 15) / 2)
+def eps_t1(d1, p=P_REF):
+    """Level 1 T-state error. Distillation part: 35 p^3 (injected states have error about p, per
+    Gidney-Fowler). Topological part: the d1 = 15 value, falling 10x per +2 in d1 at P_REF (assumed),
+    and for other p scaled by (p / P_REF)^((d1 + 1)/2), the standard exponent (extrapolation)."""
+    dist = 35 * p ** 3
+    topo = EPS_T_TOPO_15 * 10.0 ** (-(d1 - 15) / 2) * (p / P_REF) ** ((d1 + 1) / 2)
+    return dist + topo
 
 
 P_CCZ_17_27 = 0.064 / 3e9
@@ -16,8 +23,9 @@ C2 = P_CCZ_17_27 - 28 * eps_t1(17) ** 2
 P_CCZ = P_CCZ_17_27
 
 
-def p_ccz(d1, d2):
-    return 28 * eps_t1(d1) ** 2 + C2 * 10.0 ** (-(d2 - 27) / 2)
+def p_ccz(d1, d2, p=P_REF):
+    """CCZ error per state: 28 eps_T1^2 plus the factory's own topological term (assumptions as above)."""
+    return 28 * eps_t1(d1, p) ** 2 + C2 * 10.0 ** (-(d2 - 27) / 2) * (p / P_REF) ** ((d2 + 1) / 2)
 
 
 P_POST = 0.01
@@ -32,6 +40,7 @@ class Params:
     delta_off: int = 10
     d: int = 27
     d1: int = 17
+    p: float = 1e-3
     cycle_us: float = 1.0
     reaction_us: float = 10.0
     n_e: int = 0
@@ -65,8 +74,9 @@ def seconds_per_lookup_addition(P):
     return lookup, addition, other
 
 
-def logical_error_per_cycle(d):
-    return 10.0 ** (-(math.ceil(d / 2) + 1))
+def logical_error_per_cycle(d, p=P_REF):
+    """0.1 * (p / p_th)^((d+1)/2). For odd d at p = 1e-3 this is the paper's 10^-(ceil(d/2) + 1)."""
+    return 0.1 * (p / P_TH) ** ((d + 1) / 2)
 
 
 def estimate(P, simplified=False):
@@ -94,8 +104,8 @@ def estimate(P, simplified=False):
 
     cycles = runtime_s / (P.cycle_us * 1e-6)
     qubit_cycles = 0.75 * logical * cycles
-    p_top = min(1.0, qubit_cycles * logical_error_per_cycle(P.d))
-    p_dist = min(1.0, toffolis_for_error * p_ccz(P.d1, P.d))
+    p_top = min(1.0, qubit_cycles * logical_error_per_cycle(P.d, P.p))
+    p_dist = min(1.0, toffolis_for_error * p_ccz(P.d1, P.d, P.p))
     deviation = adds * P.n / (P.c_sep * 2 ** P.c_pad())
     p_approx = 2 * math.sqrt(deviation)
 

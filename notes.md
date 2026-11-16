@@ -1011,3 +1011,118 @@ Table 3's choice is 19.8 M, 5.0 h and 34% risk. The objective differs by
 layout), `search.py` (grid search over d1, d2, c_mul, c_exp, c_sep and
 delta_off) and the tests `test_estimator.py` (9 tests) and `test_search.py`
 (1 test).
+
+## Stage 5e (part 1): Sensitivity to hardware assumptions (n = 2048)
+
+### Predicted
+
+(What the model implies. Edit to match what I actually guessed.)
+
+- A worse physical error rate should be paid mostly in qubits (larger code
+  distances), because the runtime is set by the reaction time.
+- The paper's rule of thumb V(p) ~ V(0.1%) / (-log10 p - 2)^3 should hold
+  roughly, over the limited range the paper claims for it.
+- A faster reaction time should help more than a faster cycle time, because
+  the addition phase is reaction limited and the cycle time only shrinks the
+  lookup phase.
+- Close to the threshold (1%) no design should be feasible.
+- Re-optimizing the design for a faster cycle should recover the volume that
+  the frozen d = 27 design of stage 5c lost.
+
+### Surprised me
+
+(Keep only the ones that are true for you.)
+
+- From p = 1e-3 to 2e-3 the qubit count is 2.7x higher but the runtime per
+  run only 12% longer; at 3e-3 it is 6.8x the qubits for 24% more time.
+- The paper's rule of thumb holds within about 30% from p = 1e-4 to 2e-3 in
+  my model (-28%, -14%, +12%), and breaks at 3e-3 (+46%).
+- A 10x faster cycle (0.1 us) only reduces the expected volume to 0.58x,
+  while a 5x faster reaction time (2 us) reduces it to 0.36x.
+- Freezing the design misleads: in stage 5c a 5x faster cycle at d = 27 made
+  the volume worse, but re-optimizing the design makes it better (0.68x).
+
+### Explain to someone else
+
+**Method.** The estimator takes the physical error rate p. The logical error
+per cycle is 0.1 * (p / p_th)^((d+1)/2) with p_th = 1%, which equals the
+paper's 10^-(ceil(d/2)+1) at p = 1e-3 for odd d. The level 1 distillation
+error is 35 p^3 (injected states assumed to have error about p) plus a
+topological part scaled with (p / 1e-3)^((d1+1)/2), and the CCZ factory's own
+topological term is scaled the same way with d2. For each hardware setting
+the code distances d1 and d2, the window sizes c_mul and c_exp, the runway
+spacing c_sep and the padding offset are re-optimized with the paper's
+objective s^1.2 * t / (1 - risk), over d1 in 5 to 45, d2 in 9 to 99,
+c_mul and c_exp in 4 to 6, c_sep in 512 to 2048 and delta_off in {4, 7, 10}.
+
+**Physical error rate (cycle 1 us, reaction 10 us).**
+
+| p | chosen (d1, d2) | qubits | per run | expected volume | vs 1e-3 | rule of thumb |
+|---|---|---|---|---|---|---|
+| 1e-4 | 7, 13 | 2.3 M | 4.0 h | 0.51 Mqd | 0.09x | 0.125 |
+| 3e-4 | 11, 19 | 7.4 M | 4.4 h | 1.38 | 0.24x | 0.283 |
+| 1e-3 | 17, 29 | 25.6 M | 5.1 h | 5.69 | 1.00x | 1 |
+| 2e-3 | 23, 41 | 68.0 M | 5.7 h | 18.58 | 3.27x | 2.93 |
+| 3e-3 | 33, 55 | 173.1 M | 6.3 h | 57.99 | 10.19x | 6.995 |
+| 5e-3 | no feasible design in the search ranges | | | | | |
+
+**Reaction time (p = 1e-3, cycle 1 us).** 1 us: 16.3 M qubits, 1.9 h per
+run, 1.45 Mqd (0.26x). 2 us: 22.3 M, 1.9 h, 2.06 Mqd (0.36x). 5 us: 3.66 Mqd
+(0.64x). 10 us: baseline (5.69 Mqd). 20 us: 25.6 M, 8.1 h, 9.06 Mqd (1.59x).
+
+**Cycle time (p = 1e-3, reaction 10 us).** 0.1 us: 3.29 Mqd (0.58x). 0.2 us:
+3.85 Mqd (0.68x). 0.5 us: 4.61 Mqd (0.81x). 1 us: baseline. 2 us: 7.10 Mqd
+(1.25x).
+
+**Cycle x reaction, expected volume in Mqd.**
+
+| cycle \ reaction | 2 us | 5 us | 10 us |
+|---|---|---|---|
+| 0.2 us | 1.26 | 2.28 | 3.85 |
+| 0.5 us | 1.71 | 2.92 | 4.61 |
+| 1 us | 2.06 | 3.66 | 5.69 |
+
+**What it says.**
+1. Worse hardware is paid for in qubits, not time, because the runtime is set
+   by the reaction time and extra code distance mostly costs space.
+2. For this design the reaction time (classical decoding and control latency)
+   is a better lever than the cycle time. Moving the cycle time from 1 us
+   to 0.2 us gives about 1.5x less volume, not 5x. Stage 5a noted Table 2's
+   caption linking a 5x faster cycle to 5x less volume; I should reread its
+   exact wording and scope before treating this as a contradiction.
+3. The design has to be re-optimized for each setting; freezing it, as in
+   the stage 5c exercise, gives misleading answers.
+
+### How far to trust each result
+
+- Most robust: the orderings (reaction beats cycle; error rate costs qubits
+  more than time) and the rule-of-thumb agreement near p = 1e-3.
+- Extrapolated: the p-dependence of every topological term and the 35 p^3
+  distillation floor. At p >= 2e-3 the optimum uses d1 = 23 to 33, where
+  the qubit count rests on my assumption that the layout width scales with
+  d1, which I fitted only between d1 = 15 and 17. At p = 1e-4 the optimum is
+  d1 = 7, far below any calibration point.
+- Search-range edges: the reaction time 1 us row (c_sep = 2048, windows 4 and
+  4) and the cycle time 0.1 us row (windows 6 and 6) sit at the edge of the
+  ranges, so they are probably conservative.
+
+### Limitations
+
+- All results are properties of a model of the paper's design (planar grid,
+  nearest-neighbor connectivity, surface code, lookup-addition arithmetic).
+  No physical error rate or timing was measured from hardware.
+- The topological error terms use the standard (p / p_th)^((d+1)/2) scaling
+  with p_th = 1% and a prefactor of 0.1, which holds below threshold and
+  becomes unreliable near it and at very small distances.
+- The sensitivity analysis varies one hardware assumption at a time (plus
+  the cycle x reaction grid). Connectivity, decoder speed as a separate
+  parameter and the code family are not varied.
+- The 25% factory share, the 14 factories per piece and the parameter ranges
+  are fixed from the paper's n = 2048 design.
+
+### Code
+
+`estimator.py` (now with the physical error rate p), `sensitivity.py`
+(re-optimizing search over hardware settings, rule-of-thumb check) and
+`test_sensitivity.py` (5 tests; the full suite is 15 tests and takes about
+12 seconds).
