@@ -1126,3 +1126,107 @@ run, 1.45 Mqd (0.26x). 2 us: 22.3 M, 1.9 h, 2.06 Mqd (0.36x). 5 us: 3.66 Mqd
 (re-optimizing search over hardware settings, rule-of-thumb check) and
 `test_sensitivity.py` (5 tests; the full suite is 15 tests and takes about
 12 seconds).
+
+## Stage 5e (part 2): Comparison with newer published estimates
+
+### Predicted
+
+(What the arithmetic implies. Edit to match what I actually guessed.)
+
+- Qubit-count reductions overstate spacetime improvements, because runtimes
+  grew as qubits fell.
+- At about 1 M qubits the QLDPC design should run about as fast as the 2019
+  design while using far fewer qubits, if its larger points hold up.
+- Estimates at a 1 ms cycle cannot be compared by qubit-days with 1 us ones.
+- Neutral-atom designs with 11,000 to 14,000 qubits should be very slow for
+  RSA-2048.
+
+### Surprised me
+
+(Keep only the ones that are true for you.)
+
+- Gidney 2025 uses 22x fewer qubits than 2019 but runs 16x longer, so the
+  volume (qubits x expected runtime) only falls 1.39x. Pinnacle's smallest
+  point (98,000 qubits, about a month) uses 204x fewer qubits and runs 97x
+  longer, so its volume falls 2.11x.
+- Pinnacle's larger points, if they hold up, cut the volume much more:
+  0.97 Mqd (139,000 qubits, a week), 0.40 Mqd (400,000, a day) and 0.33 Mqd
+  (1 M, 8 hours), against 6.2 Mqd in 2019 and 4.45 Mqd in 2025. At 1 M
+  qubits the runtime is about the same as 2019's 7.4 h, with 20x fewer qubits.
+- I had told myself the neutral-atom paper needed "hundreds of days" at
+  11,000 to 14,000 qubits. That was wrong. The paper's Figure 3b gives about
+  1.0e4 days (13,255 qubits) and 4.3e4 days (11,033 qubits), i.e. decades, and
+  97 days needs about 102,000 qubits with parallel Toffolis (a preliminary
+  estimate). I took the earlier claim from a search snippet without checking.
+- My estimator's re-optimized 2019 design (5.69 Mqd) is within 8% of the
+  paper's 6.2 Mqd.
+
+### Explain to someone else
+
+**Why spacetime volume.** Qubit count alone is misleading because designs
+trade qubits for time. The comparison uses expected volume = qubits x expected
+runtime in megaqubit-days (Mqd), and only compares rows with the same
+physical-error rate (1e-3), cycle time (1 us) and reaction time (10 us). The
+1 ms-cycle rows are in the table but their volumes are not compared.
+
+**Published estimates (expected runtime, RSA-2048).**
+
+| Estimate | Qubits | Runtime | Mqd | vs 2019 |
+|---|---|---|---|---|
+| This project's model of the 2019 design | 25.6 M | 5.3 h | 5.69 | 0.92x |
+| Gidney and Ekerå 2019 | 20 M | 7.4 h | 6.20 | 1.00x |
+| Gidney 2025 | 897,864 | 4.96 d | 4.45 | 0.72x |
+| Pinnacle, smallest point | 98,000 | ~1 month | 2.94 | 0.47x |
+| Pinnacle, one-week point | 139,000 | ~7 d | 0.97 | 0.16x |
+| Pinnacle, one-day point | 400,000 | ~1 d | 0.40 | 0.06x |
+| Pinnacle, 1 M-qubit point | 1,000,000 | ~8 h | 0.33 | 0.05x |
+
+**What changed in each design.** Gidney 2025 keeps the 2D nearest-neighbor
+surface code but uses approximate residue arithmetic, yoked (denser) storage
+for idle qubits, and magic state cultivation, with six factories. It reports
+897,864 qubits, 12.07 h per shot, 9.2 expected shots and 4.96 days. Pinnacle
+(Webster et al., arXiv:2602.11457) uses QLDPC generalized bicycle codes,
+processing units with magic engines, and needs interactions across a whole
+code block rather than only nearest neighbors. Cain et al. (arXiv:2603.28627)
+use high-rate lifted-product qLDPC codes on reconfigurable neutral atoms with
+a 1 ms cycle and non-local connectivity.
+
+**1 ms-cycle rows (not compared by volume).** Pinnacle at 1 ms: 9.5 M qubits
+for a month (13 M in version 1). Zhou et al.: 19 M qubits, about 5.6 days
+(cited in other papers). Cain et al.: 11,033 qubits ~4.3e4 days; 13,255
+qubits ~1.0e4 days; about 102,000 qubits 97 days.
+
+### Verification status of each row
+
+- Read in the paper itself: Gidney and Ekerå 2019, Gidney 2025, Pinnacle's
+  smallest point (abstract and Fig. 1 caption; the 98,000 is as quoted by
+  Cain et al.), and Cain et al.'s 102,000-qubit, 97-day point.
+- Read from the extracted text of Cain et al.'s Figure 3b, to verify in the
+  figure: the 4.3e4 and 1.0e4 day values.
+- From search excerpts, to verify in Pinnacle's results table (version 2): the
+  139,000, 400,000 and 1 M points and the 9.5 M qubits at 1 ms.
+- Cited in other papers, not read: Zhou et al.
+- Found but not read: arXiv:2605.03951 (a modular atomic processor).
+
+### Limitations
+
+- "Same hardware assumptions" only means the same error rate, cycle time and
+  reaction time. GE19 and Gidney 2025 assume a 2D grid with nearest-neighbor
+  connections; Pinnacle needs interactions across a code block; Cain et al.
+  assume reconfigurable atoms. Those differences are not in the numbers.
+- Pinnacle is a preprint whose numbers changed between versions (v1 to v2),
+  and I have not checked whether it has been peer reviewed. The Cain et al.
+  time-efficient point is called preliminary by its authors.
+- Gidney 2025 itself says another order-of-magnitude reduction would need
+  different physical assumptions; Pinnacle changes the code family and the
+  connectivity.
+- My estimator models only the 2019 architecture. This stage lines up published
+  numbers and assumptions and does not reproduce the newer designs.
+- Expected runtimes include retries but are reported differently by each paper
+  (Gidney rounds 4.96 days up to "a week").
+
+### Code
+
+`published_estimates.py` (dataset with a source and verification status for
+every row), `compare.py` (table, ratios and `published_estimates.csv`) and
+`test_compare.py` (5 tests).

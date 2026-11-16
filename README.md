@@ -33,10 +33,12 @@ AES-128, and how does that compare with current hardware trajectories?
 - [x] Stage 5c: Estimator v0 that reproduces the paper's section 2 hand calculations
 - [x] Stage 5d: Full parameter search reproducing Table 3 rows (n = 1024 to 4096), with divergences documented
 - [x] Stage 5e (part 1): Sensitivity analysis over physical error rate, cycle time and reaction time, re-optimizing the design at each setting
-- [ ] Stage 5e (part 2): Comparison with newer published estimates (Gidney 2025; 2026 QLDPC and neutral-atom results)
+- [x] Stage 5e (part 2): Comparison with newer published estimates (Gidney 2025; 2026 QLDPC and neutral-atom results)
 - [ ] Stage 5f: Grover/AES-128 counterpart: oracle cost and sequential depth
 - [ ] Stage 5g (optional): Neural decoder for a small error-correcting code, compared against a classical decoder, with results fed into the estimator
-- [ ] Stage 6: Interactive dashboard and written report, including implications for post-quantum migration
+- [ ] Stage 6a: Public hardware roadmap data (qubit counts, error rates, cycle times), each with a source and verification status
+- [ ] Stage 6b: Interactive dashboard: published estimates, the estimator, and roadmap-based timeline scenarios
+- [ ] Stage 6c: Written report, including implications for post-quantum migration
 
 ## Methodology
 
@@ -76,6 +78,7 @@ locked-down Windows machines Qiskit's compiled library is blocked.
 | 5c | Estimator v0 reproduces Gidney-Ekerå's section 2 numbers for n = 2048 (6.9 h, 26.5% topological error, 22.3 M qubits, retry risk 31.9% against 31%). With unrounded formulas the per-run runtime is 5.0 h against Table 3's 5.1 h, and Toffoli counts are within 5% of Table 1 for n = 1024 to 3072. The retry risk (24.5% against 31%) is not yet reproduced (stage 5d) |
 | 5d | With a reconstructed factory-error model (calibrated on two published anchors), the estimator reproduces Gidney-Ekerå's Table 3 rows: Toffolis within 5%, runtimes within 8%, qubits within 6%, retry risks within 3 points (n = 2048: 34% against 31%). A grid search of 28,350 parameter sets per n puts the paper's chosen parameters in the top 0.2%, within 3.6% of my optimum |
 | 5e | Re-optimized for each hardware setting (n = 2048): worse physical error rates cost qubits, not time (2x10^-3: 2.7x the qubits for 12% more runtime per run). The paper's rule of thumb holds within about 30% from p = 10^-4 to 2x10^-3. A 5x faster reaction time reduces the expected volume to 0.36x, a 5x faster cycle only to 0.68x. At p = 5x10^-3 no feasible design exists in the search ranges |
+| 5e (2) | Qubit-count headlines overstate spacetime gains: Gidney 2025 uses 22x fewer qubits than 2019 but its volume (qubits x expected runtime) is only 1.4x lower; the smallest Pinnacle QLDPC point uses 204x fewer qubits for 2.1x lower volume. Pinnacle's larger points (1 M qubits, about 8 hours) suggest up to about 19x lower volume, pending verification. Neutral-atom RSA-2048 designs with 11,000 to 13,000 qubits take decades; about 102,000 qubits gets to 97 days under parallelism assumptions |
 
 ## Known limitations
 
@@ -126,3 +129,10 @@ locked-down Windows machines Qiskit's compiled library is blocked.
 - All estimates are for one architecture (planar surface code with
   nearest-neighbor connectivity); other codes and hardware are compared in
   part 2, not modeled.
+- Stage 5e part 2 compares published numbers only: the estimator models just
+  the 2019 architecture. Three Pinnacle points and the neutral-atom
+  Figure 3b values are flagged as not yet verified against the papers, and
+  designs with different connectivity assumptions are compared only through
+  their quoted error rate, cycle time and reaction time.
+- Estimates from preprints change between versions (Pinnacle's 1 ms design
+  went from 13 M to 9.5 M qubits), so every figure carries its version.
