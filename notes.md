@@ -1230,3 +1230,111 @@ qubits ~1.0e4 days; about 102,000 qubits 97 days.
 `published_estimates.py` (dataset with a source and verification status for
 every row), `compare.py` (table, ratios and `published_estimates.csv`) and
 `test_compare.py` (5 tests).
+
+## Stage 5f: Grover on AES-128, a depth problem
+
+### Predicted
+
+(What the formulas imply. Edit to match what I actually guessed.)
+
+- Grover's quadratic speedup is real but the iterations are strictly
+  sequential, so AES-128 should be limited by circuit depth, not by qubits.
+- The gate counts and qubit counts of Grassl et al.'s Table 5 should
+  reproduce from its Tables 2 to 4 and its own formulas.
+- One machine should need far longer than the age of the universe.
+- Parallelizing over S machines should only help as 1/sqrt(S), so a
+  one-year attack should need an enormous number of machines.
+- Compared with RSA-2048's 4.45 Mqd, AES-128 should be vastly more
+  expensive to attack with Grover.
+
+### Surprised me
+
+(Keep only the ones that are true for you.)
+
+- Grassl et al.'s Table 5 does not reproduce exactly: the T and Clifford
+  gate counts and the qubit counts match for all three key sizes (within
+  0.5%), and the AES-256 depths match, but the depth mantissas of the AES-128
+  and AES-192 rows look swapped (my AES-128 values 1.215 x 2^80 and
+  1.328 x 2^81 equal the printed AES-192 mantissas 1.21 and 1.33, and my
+  AES-192 values 1.063 and 1.162 equal the printed AES-128 ones 1.06 and
+  1.16). The text of the same paper also gives the AES-192 T-count as
+  3.75e36 = 1.81 x 2^114, while its table says 1.81 x 2^118 and my
+  recomputation gives 6.0e35, which matches the table.
+- Even if a circuit were a million times shallower, one machine would still
+  need about 4.65e5 years.
+- A one-year attack needs about 2.2e23 machines, and the total number of T
+  gates grows from 9.2e25 to 4.3e37.
+
+### Explain to someone else
+
+**Source and setting.** Grassl, Langenberg, Roetteler and Steinwandt,
+arXiv:1512.04965 (the 2015 version, read in full). Clifford+T gates
+(Toffoli = 7 T gates), no connectivity limits, a circuit designed to
+minimize qubits, not depth. With r = 3 plaintext-ciphertext pairs the
+oracle runs 3 AES-128 circuits side by side. One circuit has 1,060,864 T
+gates, 1,380,420 Clifford gates, T-depth 50,688, depth 110,799 and
+984 qubits. The oracle needs 3 x 984 + 1 = 2,953 logical qubits. Each
+Grover iteration costs 6 x 1,060,864 + 13,204 T gates, and there are
+floor(pi/4 * 2^64) iterations, so 1.19 x 2^86 T gates in total.
+
+**Lower bound on the runtime of one machine.** I assume one reaction time
+(10 us) per T layer, with nothing else counted. The T-depth (recomputed as
+iterations x 2 x 50,688) is 1.215 x 2^80, which gives 4.65e11 years, about
+34 times the age of the universe (4.65e10 years at a 1 us reaction time).
+AES-192 needs 1.75e21 years and AES-256 1.01e31 years.
+
+**A shallower circuit.** Depth reduced 10x: 4.65e10 years; 1,000x: 4.65e8
+years; 1,000,000x: 4.65e5 years. Jaques et al. (EUROCRYPT 2020) give
+lower-depth oracles at the cost of more qubits, but their AES estimates
+were corrected in a 2023 revision that I could not access, so this table
+is a sensitivity bound, not their numbers.
+
+**Parallelizing.** With S machines each searching a share of the keys, time
+falls as 1/sqrt(S) and total work grows as sqrt(S).
+
+| target | machines | code distance | qubits per machine* | total qubits* | total T gates |
+|---|---|---|---|---|---|
+| 100 years | 2.2e19 | 37 | 8.5e6 | 1.9e26 | 4.3e35 |
+| 1 year | 2.2e23 | 33 | 6.8e6 | 1.5e30 | 4.3e37 |
+| 1 day | 2.9e28 | 29 | 5.3e6 | 1.5e35 | 1.6e40 |
+| 1 hour | 1.7e31 | 27 | 4.6e6 | 7.7e37 | 3.8e41 |
+
+*Data patches only (no magic-state factories or routing), so these are
+lower bounds.
+
+**Capping the depth.** With a depth limit D the total number of gates is
+G_seq * D_seq / D: 2^87.9 gates at depth 2^81, 2^104.9 at 2^64, 2^128.9
+at 2^40. I derived this myself; it is the kind of argument behind
+depth-limited security categories. I have not read NIST's own text, so its
+exact formula and parameters should be checked before citing it.
+
+**Against RSA-2048.** RSA-2048 costs about 4.45 Mqd (Gidney 2025). A
+one-year AES-128 attack needs at least 1.5e30 qubits for a year, about
+5e26 Mqd, roughly 1e26 times more. RSA is a space problem that new ideas
+made cheaper (20 million qubits to under a million in six years). AES-128
+under Grover is a depth problem: the speedup is quadratic and parallelizes
+badly, so the obstacle is time.
+
+### Limitations
+
+- One reaction time per T layer is a lower bound. Better T-gate schemes or
+  a faster reaction time would reduce it (tenfold at 1 us).
+- Grassl's circuit minimizes qubits. Shallower designs exist; the corrected
+  numbers of Jaques et al. were not accessible, so only the sensitivity
+  table above covers them.
+- Data patches only: no factories, routing or connectivity limits, and the
+  error heuristic from stage 5b is used at very small error rates.
+- Grover needs the number of solutions to be known (here 1, with 3 pairs
+  making the key unique).
+- This covers key search only. "Infeasible in this model" is not a security
+  proof, and other attacks on AES are not considered.
+- I used my recomputed depths, not the printed Table 5 values for AES-128
+  and AES-192; they differ by about 13%, which does not change the
+  conclusions. I read only the 2015 version, so a later version may fix the
+  table.
+
+### Code
+
+`aes_grover.py` (Grassl's tables, recomputation of Table 5, runtime lower
+bounds, parallelization and depth-cap tradeoffs) and `test_aes_grover.py`
+(8 tests; the full suite is 28 tests).
