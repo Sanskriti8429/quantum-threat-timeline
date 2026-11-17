@@ -1338,3 +1338,125 @@ badly, so the obstacle is time.
 `aes_grover.py` (Grassl's tables, recomputation of Table 5, runtime lower
 bounds, parallelization and depth-cap tradeoffs) and `test_aes_grover.py`
 (8 tests; the full suite is 28 tests).
+
+## Stage 6a: Public hardware data and the distance to threat
+
+### Predicted
+
+(What the numbers should show. Edit to match what I actually guessed.)
+
+- Demonstrated machines should be orders of magnitude short of the estimates'
+  qubit counts.
+- Demonstrated logical error rates should be many orders of magnitude above
+  the 1e-15 per round that the factoring estimates need.
+- The error-suppression factor per added distance (Lambda) measured on real
+  hardware should be weaker than the Lambda of about 10 that p = 1e-3
+  implies in the estimator.
+- Roadmap targets taken at face value may exceed the requirement on one
+  quantity, but should not amount to a date.
+
+### Surprised me
+
+(Keep only the ones that are true for you.)
+
+- The smallest published estimate (Pinnacle, 98,000 qubits) needs 16x more
+  qubits than the largest array demonstrated (6,100 atoms, for under 13
+  seconds), and 933x more than the 105-qubit Google processor.
+- The best logical error rate (Quantinuum, 5e-6 per round) is 9.7 orders of
+  magnitude from 1e-15; Google's surface code (1.43e-3) is 12.2.
+- Google's measured Lambda of 2.14 is 4.7x weaker than the assumed 10. At
+  that Lambda, reaching 1e-15 would need distance 81, i.e. 13,121 qubits per
+  logical qubit, 9x the 1,457 at the distance 27 the estimates assume.
+- Google's decoder latency (63 us at distance 5) is 6.3x the 10 us reaction
+  time the estimates assume; re-optimizing the n = 2048 design at 63 us
+  raises the volume 3.84x (21.9 Mqd against 5.69).
+- Two-qubit gate error alone is already 1e-4 (IonQ, lab prototypes) and
+  7.9e-4 (Helios), but that is not the same quantity as the estimates'
+  p = 1e-3, which covers every operation in a surface-code cycle at 1 us.
+
+### Explain to someone else
+
+**Method.** A dataset of public results and plans (`hardware_status.py`), with
+each row marked as "demonstrated" (a measured result) or "roadmap target" (a
+plan with a year), plus its date, source and how well the source was checked.
+`distance_to_threat.py` compares the demonstrated rows with what Gidney 2025
+needs (1,409 logical qubits at peak, 6.5e9 Toffolis, 897,864 physical qubits
+on a grid, about 1e-15 logical error per qubit per round) and with the
+assumptions of my estimator.
+
+**Demonstrated results used.** Google Willow (distance-7 surface code,
+1.43e-3 per cycle, Lambda 2.14, 1.1 us cycle, 63 us decoder latency at
+distance 5, correlated-error floor about 3e-10 per cycle in repetition
+codes, 105 qubits), IBM Nighthawk (120 qubits), Quantinuum Helios (98
+ions, two-qubit fidelity 99.921%; color code 5e-6 per round at distance 7,
+fitted Lambda about 9 with large uncertainty), IonQ (99.99% two-qubit
+fidelity in lab prototypes), Harvard/MIT/QuEra (448-atom fault-tolerant
+architecture; more than 3,000 qubits continuously for over two hours) and
+Caltech (6,100 atoms for under 13 seconds).
+
+**Roadmap targets (statements of intent).** IBM Starling 2029 (200 logical
+qubits, 1e8 operations) and Blue Jay 2033 or later (2,000 logical qubits,
+1e9 operations); Quantinuum Apollo 2029 (hundreds of logical qubits; the
+company says it may not meet the roadmap); IonQ 2030 (2 million physical and
+80,000 logical qubits).
+
+**Physical qubits needed against demonstrated.**
+
+| demonstrated | qubits | vs Pinnacle 98k | vs Gidney 2025 (0.9 M) | vs 2019 (20 M) |
+|---|---|---|---|---|
+| Caltech atoms (<13 s) | 6,100 | 16x | 147x | 3,279x |
+| Harvard atoms (2 h) | 3,000 | 33x | 299x | 6,667x |
+| Google superconducting | 105 | 933x | 8,551x | 190,476x |
+| IBM Nighthawk | 120 | 817x | 7,482x | 166,667x |
+| Quantinuum Helios | 98 | 1,000x | 9,162x | 204,082x |
+
+**If measured suppression kept holding (an assumption).** Google, Lambda
+2.14: distance 81 for 1e-15, 13,121 qubits per logical qubit (9x). Quantinuum
+color code, fitted Lambda 5, 9 or 17: distance 35, 29 or 23, i.e. 1,837, 1,261
+or 793 qubits per logical qubit. But Google's own repetition-code floor of
+about 3e-10 per cycle would have to be fixed first.
+
+**Estimator at measured values.** Reaction time 20 us: 1.59x the volume;
+63 us: 3.84x. At p = 3e-3 (Lambda 3.3): 173 M qubits, 58.0 Mqd. At p = 5e-3
+(about Google's Lambda): no feasible design in the search ranges.
+
+**Roadmaps at face value against the requirement.** IBM 2029: 0.14x of
+1,409 logical qubits; IBM 2033+: 1.42x; Quantinuum 2029: at least 0.07x
+(recorded as 100 for "hundreds"); IonQ 2030: 2.23x of 897,864 physical
+qubits. IBM's operations are not Toffolis, and none of the roadmaps states
+error rates, speeds or run times, so none gives a date.
+
+### What this does and does not say
+
+- It says: no demonstration is close on scale, on logical error or on
+  decoder speed, and the best surface-code suppression is several times
+  weaker than the estimates assume.
+- It does not say when RSA-2048 could be factored. Roadmap rows give no
+  error rates, speeds or run times together, so there is no basis for a date.
+  The dashboard (6b) will show scenarios, not a forecast.
+- Comparisons across platforms are loose: a surface-code Lambda and a
+  color-code Lambda are different things, logical qubit counts depend on the
+  code and distance, and ion and atom machines run far slower than a 1 us
+  cycle.
+
+### Verification status and limitations
+
+- Every row was read from a search-result excerpt (paper abstract, the
+  organization's release, or press coverage). No page was opened in full.
+  Source quality is recorded per row (peer-reviewed paper excerpt,
+  organization release excerpt, secondary report).
+- Rows to verify first: Quantinuum's October 2026 color-code results (only
+  coverage of the announcement was read, not the paper), IBM's delivery
+  status (Kookaburra was due in 2026; not checked), and the Caltech 6,100-atom
+  figure (secondary report).
+- Coverage is partial: no Google roadmap, Microsoft, PsiQuantum, Rigetti or
+  others. Data collected 2026-11-17.
+- The recorded "hundreds of logical qubits" for Apollo is 100, a lower bound.
+- The estimator's p-dependence is an extrapolation (stage 5e), so the p = 3e-3
+  and 5e-3 lines are indicative only.
+
+### Code
+
+`hardware_status.py` (the dataset), `distance_to_threat.py` (the comparison
+and `hardware_status.csv`) and `test_hardware.py` (8 tests; the full suite is
+36 tests).

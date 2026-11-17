@@ -36,7 +36,7 @@ AES-128, and how does that compare with current hardware trajectories?
 - [x] Stage 5e (part 2): Comparison with newer published estimates (Gidney 2025; 2026 QLDPC and neutral-atom results)
 - [x] Stage 5f: Grover/AES-128 counterpart: oracle cost and sequential depth
 - [ ] Stage 5g (optional): Neural decoder for a small error-correcting code, compared against a classical decoder, with results fed into the estimator
-- [ ] Stage 6a: Public hardware roadmap data (qubit counts, error rates, cycle times), each with a source and verification status
+- [x] Stage 6a: Public hardware roadmap data (qubit counts, error rates, cycle times), each with a source and verification status
 - [ ] Stage 6b: Interactive dashboard: published estimates, the estimator, and roadmap-based timeline scenarios
 - [ ] Stage 6c: Written report, including implications for post-quantum migration
 
@@ -80,6 +80,7 @@ locked-down Windows machines Qiskit's compiled library is blocked.
 | 5e | Re-optimized for each hardware setting (n = 2048): worse physical error rates cost qubits, not time (2x10^-3: 2.7x the qubits for 12% more runtime per run). The paper's rule of thumb holds within about 30% from p = 10^-4 to 2x10^-3. A 5x faster reaction time reduces the expected volume to 0.36x, a 5x faster cycle only to 0.68x. At p = 5x10^-3 no feasible design exists in the search ranges |
 | 5e (2) | Qubit-count headlines overstate spacetime gains: Gidney 2025 uses 22x fewer qubits than 2019 but its volume (qubits x expected runtime) is only 1.4x lower; the smallest Pinnacle QLDPC point uses 204x fewer qubits for 2.1x lower volume. Pinnacle's larger points (1 M qubits, about 8 hours) suggest up to about 19x lower volume, pending verification. Neutral-atom RSA-2048 designs with 11,000 to 13,000 qubits take decades; about 102,000 qubits gets to 97 days under parallelism assumptions |
 | 5f | Grover on AES-128 (circuit of Grassl et al. 2016): 2,953 logical qubits but 1.19x2^86 T gates and a depth of about 2^81. One machine needs at least 4.65x10^11 years (34x the age of the universe) even assuming only one 10 us reaction time per T layer; a one-year attack needs about 2x10^23 machines and at least 1.5x10^30 physical qubits. A depth problem, unlike RSA, and about 10^26 times RSA-2048's cost in qubit-days. Two inconsistencies were found in the source's own Table 5 |
+| 6a | Distance to threat (public data collected 2026-11-17): the smallest published qubit requirement is 16x the largest array demonstrated (6,100 atoms, under 13 s) and 933x Google's 105 qubits. The best logical error per round (5x10^-6, Quantinuum) is 9.7 orders of magnitude from the 10^-15 the estimates need (Google surface code: 12.2). Google's measured suppression per distance step (2.14) is 4.7x weaker than the estimates' model, and its 63 us decoder latency raises the estimated volume 3.8x. Roadmap targets are listed separately from demonstrations and give no date |
 
 ## Known limitations
 
@@ -143,3 +144,12 @@ locked-down Windows machines Qiskit's compiled library is blocked.
   figures are lower bounds (no factories, routing or connectivity limits).
 - The source's own Table 5 has depth mantissas that look swapped between
   AES-128 and AES-192; this project uses recomputed values.
+- Stage 6a's hardware data comes from search excerpts of papers, company
+  releases and press coverage; no page was opened in full, and coverage of
+  vendors is partial. Roadmap rows are statements of intent and are kept
+  apart from demonstrated results. Several rows (the Quantinuum October 2026
+  paper, IBM's 2026 delivery status, the Caltech atom count) still need
+  checking against their sources.
+- Hardware comparisons across platforms are loose (different codes, speeds
+  and noise models), and extrapolating measured error suppression to 10^-15
+  assumes no noise floors, which Google's own data already shows.
