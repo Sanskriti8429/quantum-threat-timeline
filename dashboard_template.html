@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Quantum Threat Timeline: what the numbers do and don’t say</title>
+<style>
+:root{--bg:#fff1cc;--ink:#2b2250;--card:#fff;--mint:#2ec4a6;--sky:#3a86ff;--grape:#8b5cf6;--pink:#ff5fa2;--sun:#ffbe0b;--coral:#ff6b4a}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.55 "Trebuchet MS","Segoe UI",system-ui,sans-serif}
+.w{max-width:1080px;margin:0 auto;padding:0 18px}
+h1,h2,.sticker,.big{font-family:"Arial Rounded MT Bold","Trebuchet MS",system-ui,sans-serif;font-weight:800}
+h1{font-size:clamp(2.2rem,6vw,4rem);line-height:1.02;margin:1.6rem 0 .5rem;max-width:16ch}
+h1 span{background:var(--pink);color:#fff;padding:0 .25em;border-radius:.25em;display:inline-block;transform:rotate(-2deg)}
+h2{font-size:1.7rem;margin:2.6rem 0 .4rem}
+p{max-width:64ch}.mu{opacity:.75}
+.card{background:var(--card);border:3px solid var(--ink);border-radius:20px;box-shadow:6px 6px 0 var(--ink);padding:18px}
+.note{background:var(--sun);border:3px solid var(--ink);border-radius:14px;padding:.6rem 1rem;max-width:70ch;font-weight:600}
+.stage{display:grid;grid-template-columns:340px 1fr;gap:22px;align-items:start;margin-top:1.4rem}
+@media(max-width:860px){.stage{grid-template-columns:1fr}}
+.dial{margin:0 0 1.1rem}.dial label{display:flex;justify-content:space-between;font-weight:800}
+.dial output{background:var(--ink);color:#fff;border-radius:999px;padding:0 .7rem;font-variant-numeric:tabular-nums}
+.dial small{display:block;opacity:.7;line-height:1.3;margin-top:.15rem}
+input[type=range]{width:100%;height:14px;accent-color:var(--grape)}
+#sr{accent-color:var(--sky)}#sc{accent-color:var(--mint)}
+.pre{display:flex;flex-wrap:wrap;gap:8px}
+button{font:inherit;font-weight:800;color:var(--ink);background:var(--sun);border:3px solid var(--ink);border-radius:999px;padding:.25rem .9rem;cursor:pointer;box-shadow:3px 3px 0 var(--ink);transition:transform .1s}
+button:hover{transform:translate(-1px,-1px)}button:active{transform:translate(3px,3px);box-shadow:none}
+button:nth-child(2){background:var(--mint)}button:nth-child(3){background:var(--pink);color:#fff}
+:focus-visible{outline:4px solid var(--sky);outline-offset:2px}
+.answer{font-size:1.15rem;margin:0 0 1rem}.answer b{background:var(--sun);padding:0 .2em;border-radius:.2em}
+.rowb{display:grid;grid-template-columns:150px 1fr 90px;gap:10px;align-items:center;margin:.35rem 0}
+@media(max-width:560px){.rowb{grid-template-columns:100px 1fr 70px;font-size:.9rem}}
+.tr{height:26px;background:#2b22501a;border-radius:999px;overflow:hidden}
+.bar{height:100%;border-radius:999px;border:3px solid var(--ink);transition:width .6s cubic-bezier(.34,1.56,.64,1)}
+.val{font-weight:800;text-align:right;font-variant-numeric:tabular-nums}
+.need .bar{background:repeating-linear-gradient(45deg,var(--coral),var(--coral) 10px,#ff8a6e 10px,#ff8a6e 20px)}
+.need{background:#ff6b4a22;border-radius:14px;padding:.3rem .5rem;margin-top:.8rem}
+.axis{display:grid;grid-template-columns:150px 1fr 90px;gap:10px;margin-top:.4rem;font-size:.82rem;opacity:.8}
+.ticks{display:flex;justify-content:space-between}
+@media(max-width:560px){.axis{grid-template-columns:100px 1fr 70px}}
+.sticker{display:inline-block;background:var(--pink);color:#fff;border:3px solid var(--ink);border-radius:16px;padding:.2rem .8rem;transform:rotate(-2.5deg);font-size:1.5rem;box-shadow:4px 4px 0 var(--ink);margin:.7rem 0}
+.three{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:18px;margin-top:.8rem}
+.three .card:nth-child(1){background:#e9e2ff}.three .card:nth-child(2){background:#dcecff}.three .card:nth-child(3){background:#d8f7ef}
+.big{font-size:2rem;line-height:1.1;margin:.2rem 0}
+.chips{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:14px;margin-top:.8rem}
+.chip{border:3px solid var(--ink);border-radius:16px;padding:.6rem .8rem;background:#fff;box-shadow:4px 4px 0 var(--ink)}
+.chip b{display:block}.tag{display:inline-block;font-size:.78rem;font-weight:800;border:2px solid var(--ink);border-radius:999px;padding:0 .5rem;margin-top:.3rem}
+.ok{background:var(--mint)}.chk{background:var(--sun)}.cit{background:#dcdcdc}.mod{background:var(--pink);color:#fff}
+table{border-collapse:collapse;width:100%;background:#fff;border:3px solid var(--ink);border-radius:12px;overflow:hidden;font-size:.92rem}
+th,td{border-bottom:2px solid #2b225033;padding:.4rem .6rem;text-align:left}th{background:var(--sun)}td.n{text-align:right;font-weight:800}
+details{margin:.8rem 0}summary{cursor:pointer;font-weight:800}a{color:var(--sky);font-weight:700}footer{margin:3rem 0;opacity:.75;font-size:.9rem}
+</style>
+</head>
+<body><div class="w">
+<header>
+<h1>How big is the <span>gap?</span></h1>
+<p>Published designs say what it would take to break RSA-2048. Public results show what has actually been built. Play with the dials and see how far apart they are.</p>
+<p class="note">This page does not predict when RSA-2048 could be broken. No source it uses states error rates, speeds and run times together for a machine that could do it.</p>
+<noscript><p class="note">This page needs JavaScript. The data files are linked at the bottom.</p></noscript>
+</header>
+<main>
+<div class="stage">
+ <section class="card" aria-label="Dials">
+  <div class="pre" id="pre" style="margin-bottom:1rem"></div>
+  <div class="dial"><label for="sp">How often a step goes wrong <output id="op"></output></label><input type="range" id="sp" min="0" max="1000"><small>Physical error rate. Smaller is better.</small></div>
+  <div class="dial"><label for="sr">How fast the computer reacts <output id="or"></output></label><input type="range" id="sr" min="0" max="1000"><small>Time to read a result and decide the next move.</small></div>
+  <div class="dial"><label for="sc">How long one error check takes <output id="oc"></output></label><input type="range" id="sc" min="0" max="1000"><small>The surface-code cycle.</small></div>
+ </section>
+ <section class="card" aria-label="Who is biggest">
+  <p class="answer" id="ans" aria-live="polite"></p>
+  <div id="bars"></div>
+  <div class="axis"><span></span><div class="ticks" aria-hidden="true"><span>100</span><span>1,000</span><span>10,000</span><span>100,000</span><span>1 million</span><span>10 million</span></div><span></span></div>
+  <p class="mu" style="font-size:.88rem;margin:.4rem 0 0">Bars show physical qubits. Each step to the right is 10 times more. Blue and green bars are machines that really exist; the striped one is what the cheapest design needs under your dials.</p>
+  <span class="sticker" id="stk"></span>
+ </section>
+</div>
+
+<h2>Are today’s machines good enough?</h2>
+<div class="three" id="three"></div>
+<p class="mu">None of this predicts a date: nothing here says when, or whether, hardware will reach these values together.</p>
+
+<h2>Designs that have been published</h2>
+<p class="mu">Each card is one published way of breaking RSA-2048. The tag says how well I checked it.</p>
+<div class="chips" id="chips"></div>
+
+<h2>Company roadmaps</h2>
+<p class="mu">Plans, not results. A target that beats a requirement on one number says nothing about error rate, speed or run time, and none of these plans states them.</p>
+<div style="overflow-x:auto"><table id="road"></table></div>
+
+<h2>Open items and caveats</h2>
+<details><summary id="osum">Rows still to be checked</summary><ul id="open"></ul></details>
+<ul><li>The live model reproduces the 2019 Gidney–Ekerå design and extrapolates it. Its factory-error and layout assumptions are reconstructions, and its dependence on error rate is an extrapolation, so orderings are more trustworthy than absolute numbers away from an error rate of 10⁻³.</li>
+<li>Hardware rows were read from search excerpts, coverage is partial, and cross-platform comparisons are loose.</li></ul>
+<p class="mu" id="sc2"></p>
+</main>
+<footer>Built __BUILT__. Data: <a href="data/published_estimates.csv">published estimates</a>, <a href="data/hardware_status.csv">hardware</a>, <a href="data/sensitivity.csv">model grid</a>. Code: <a href="https://github.com/Sanskriti8429/quantum-threat-timeline">github.com/Sanskriti8429/quantum-threat-timeline</a>. A learning project, not security advice.</footer>
+</div>
+<script>
+(function(){"use strict";
+const DATA=__DATA__,E=DATA.estimates,HW=DATA.hardware,$=i=>document.getElementById(i),hw=k=>HW.find(r=>r.key===k);
+function h(t,a,c){const e=document.createElement(t);for(const k in a||{})k==="text"?e.textContent=a[k]:e.setAttribute(k,a[k]);(c||[]).forEach(x=>e.appendChild(typeof x==="string"?document.createTextNode(x):x));return e}
+const SUP={"-":"⁻",0:"⁰",1:"¹",2:"²",3:"³",4:"⁴",5:"⁵",6:"⁶",7:"⁷",8:"⁸",9:"⁹"},sup=n=>String(n).split("").map(c=>SUP[c]||c).join(""),sci=(x,d)=>{const e=Math.floor(Math.log10(x));return(x/10**e).toFixed(d)+" × 10"+sup(e)},I=n=>Math.round(n).toLocaleString("en-US");
+const fq=n=>n>=1e8?(n/1e6).toFixed(0)+" million":n>=1e6?(n/1e6).toFixed(1)+" million":I(n),fd=d=>d<1?(d*24).toFixed(1)+" hours":d<100?d.toFixed(1)+" days":d<1000?I(d)+" days":sci(d,1)+" days (≈"+I(d/365.25)+" years)",fr=r=>(r>=100?I(r):r>=10?r.toFixed(0):r.toFixed(1))+"×";
+// model ported from estimator.py
+const lg=Math.log2,PR=1e-3,PT=1e-2,E15=1.4e-6-3.5e-8,eT=(d1,p)=>35*p**3+E15*10**(-(d1-15)/2)*(p/PR)**((d1+1)/2),C2=0.064/3e9-28*eT(17,PR)**2,pC=(d1,d2,p)=>28*eT(d1,p)**2+C2*10**(-(d2-27)/2)*(p/PR)**((d2+1)/2);
+function est(P){const n=2048,ne=3*(n/2-1)-40,cp=2*lg(n)+lg(ne)+P.dl,ad=2*n*ne/(P.cm*P.ce)*(P.cs+1)/P.cs,run=ad*(P.ct*1e-6*P.d/2*2**(P.ce+P.cm)+2*(P.cs+cp)*P.rt*1e-6+1e-3),tof=ad*(2*n+n*cp/P.cs+2**(P.ce+P.cm)),
+ lq=Math.round(113*P.d1/17)*Math.ceil(n/P.cs)*(33+Math.round(1.06*3*(P.cs+cp)/113)),ph=lq*2*(P.d+1)**2,pt=Math.min(1,.75*lq*(run/(P.ct*1e-6))*.1*(P.p/PT)**((P.d+1)/2)),pd=Math.min(1,tof*pC(P.d1,P.d,P.p)),pa=2*Math.sqrt(ad*n/(P.cs*2**cp)),risk=1-(1-pt)*(1-pd)*(1-pa)*.99,er=risk<1?run/(1-risk):Infinity;
+ return{phys:ph,runh:run/3600,risk,days:er/86400,vol:ph*er/86400/1e6}}
+const D1=[],D2=[];for(let i=5;i<=45;i+=2)D1.push(i);for(let i=9;i<=99;i+=2)D2.push(i);
+function best(p,rt,ct){let b=null,bs=Infinity;for(const d1 of D1)for(const d of D2)for(const cm of[4,5,6])for(const ce of[4,5,6])for(const cs of[768,1024,1536,2048]){const r=est({p,rt,ct,d1,d,cm,ce,cs,dl:7});if(r.risk>=.999)continue;const sc=r.phys**1.2*r.runh/(1-r.risk);if(sc<bs){bs=sc;b=Object.assign(r,{d1,d,cm,ce,cs})}}return b}
+// dials
+const MAP={sp:v=>1e-4*60**(v/1e3),sr:v=>100**(v/1e3),sc:v=>.1*20**(v/1e3)},INV={sp:x=>1e3*Math.log(x/1e-4)/Math.log(60),sr:x=>1e3*Math.log(x)/Math.log(100),sc:x=>1e3*Math.log(x/.1)/Math.log(20)};
+const lam=hw("GOOG-lambda").value,dec=hw("GOOG-decoder").value,PRE=[["2019 paper’s settings",1e-3,10,1],["Google, as measured",1e-2/lam,dec,hw("GOOG-cycle").value],["Hopeful future",2e-4,2,.5]];
+PRE.forEach(p=>{const b=h("button",{type:"button",text:p[0]});b.onclick=()=>{$("sp").value=INV.sp(p[1]);$("sr").value=INV.sr(p[2]);$("sc").value=INV.sc(p[3]);go()};$("pre").appendChild(b)});
+$("sp").value=INV.sp(1e-3);$("sr").value=INV.sr(10);$("sc").value=INV.sc(1);
+// the bar race
+const pos=q=>Math.max(1,Math.min(100,(Math.log10(q)-1.7)/6.1*100)),COL=["var(--sky)","var(--mint)","var(--grape)","var(--sun)","var(--pink)","var(--sky)"];
+const M=[["QTNM-phys","Quantinuum (ions)",98],["GOOG-qubits","Google (chip)",105],["IBM-nighthawk","IBM (chip)",120],["HARV-448","Harvard (atoms)",448],["HARV-3000","Harvard, ran 2 hours",3000],["CALT-6100","Caltech, ran <13 s",6100]],bars=$("bars"),fills={};
+M.forEach((m,i)=>{const f=h("div",{class:"bar",style:"width:0;background:"+COL[i]});fills[m[0]]=f;bars.appendChild(h("div",{class:"rowb"},[h("span",{text:m[1]}),h("div",{class:"tr"},[f]),h("span",{class:"val",text:I(m[2])})]))});
+const nf=h("div",{class:"bar",style:"width:0"}),nv=h("span",{class:"val",text:""});bars.appendChild(h("div",{class:"rowb need"},[h("strong",{text:"Your scenario needs"}),h("div",{class:"tr"},[nf]),nv]));
+setTimeout(()=>M.forEach(m=>fills[m[0]].style.width=pos(m[2])+"%"),60);
+function card(title,big,txt){return h("div",{class:"card"},[h("strong",{text:title}),h("div",{class:"big",text:big}),h("div",{text:txt})])}
+let busy=0;function go(){cancelAnimationFrame(busy);busy=requestAnimationFrame(render)}
+function render(){const p=MAP.sp(+$("sp").value),rt=MAP.sr(+$("sr").value),ct=MAP.sc(+$("sc").value);$("op").textContent=sci(p,1);$("or").textContent=rt.toFixed(rt<10?1:0)+" µs";$("oc").textContent=ct.toFixed(2)+" µs";
+ const b=best(p,rt,ct),T=$("three");T.textContent="";
+ if(!b){nf.style.width="0";nv.textContent="none";$("ans").textContent="With these settings the model finds no design for RSA-2048 within its search limits. That describes the model, which is extrapolated this far out, not a verdict on the hardware.";$("stk").textContent="no design found"}
+ else{nf.style.width=pos(b.phys)+"%";nv.textContent=fq(b.phys);const r=b.phys/6100;
+  $("ans").innerHTML="";$("ans").append("With these dials the cheapest design needs about ",h("b",{text:fq(b.phys)+" qubits"})," and takes about ",h("b",{text:fd(b.days)})," (",(b.runh<48?b.runh.toFixed(1)+" hours":(b.runh/24).toFixed(1)+" days")," per try, ",(100*b.risk).toFixed(0),"% chance a try fails).");
+  $("stk").textContent=fr(r)+" the biggest array built"}
+ const le=HW.filter(r=>r.metric==="logical_error_per_round"),o=le.map(r=>Math.log10(r.value/1e-15));
+ T.appendChild(card("Do errors shrink fast enough?","Λ "+(1e-2/p).toFixed(1)+" vs "+lam,"Each time the code grows a step, errors should shrink by this factor. Your dials assume the first number; the best measured (Google) is the second."));
+ T.appendChild(card("Is it quick enough?",rt.toFixed(rt<10?1:0)+" µs vs "+dec+" µs","Reaction time you assumed against the decoder delay Google measured, and that was for a small code only."));
+ T.appendChild(card("Are errors low enough?",Math.min.apply(null,o).toFixed(1)+"–"+Math.max.apply(null,o).toFixed(1)+" orders off","Designs need about 10⁻¹⁵ error per step. The best results so far are 5 × 10⁻⁶ (Quantinuum) and 1.4 × 10⁻³ (Google): millions to trillions of times too high."))}
+["sp","sr","sc"].forEach(i=>$(i).addEventListener("input",go));
+// published designs
+const QT={"primary text":["ok","read in the paper"],"this project":["mod","my model"],"search excerpt":["chk","to verify"],"cited in another":["cit","cited elsewhere"]};
+E.slice().sort((a,b)=>a.qubits-b.qubits).forEach(r=>$("chips").appendChild(h("div",{class:"chip"},[h("b",{text:r.label}),h("span",{text:fq(r.qubits)+" qubits · "+fd(r.runtime_days)}),h("br"),h("span",{class:"tag "+QT[r.source_quality][0],text:QT[r.source_quality][1]+(r.same_hw?"":" · 1 ms cycle")})])));
+// roadmaps, open items
+const req=E.find(r=>r.key==="G25").qubits,rd=$("road");rd.appendChild(h("tr",{},["Organization","Year","States","Against Gidney 2025","","Source quality"].map(t=>h("th",{text:t}))));
+HW.filter(r=>r.kind==="roadmap target").sort((a,b)=>a.target_year-b.target_year).forEach(r=>{const lo=r.metric==="logical_qubits";rd.appendChild(h("tr",{},[h("td",{text:r.org}),h("td",{text:String(r.target_year)}),h("td",{text:I(r.value)+" "+r.unit}),h("td",{text:lo?"1,409 logical qubits":I(req)+" physical qubits"}),h("td",{class:"n",text:fr(r.value/(lo?1409:req))}),h("td",{text:r.source_quality})]))});
+const nd=r=>!["primary text","this project","peer-reviewed paper (excerpt)"].includes(r.source_quality)||/verify/i.test(r.note||"");
+E.filter(nd).forEach(r=>$("open").appendChild(h("li",{text:r.label+": "+QT[r.source_quality][1]+"."})));HW.filter(r=>r.source_quality!=="peer-reviewed paper (excerpt)").forEach(r=>$("open").appendChild(h("li",{text:r.org+" ("+r.key+"): "+r.source_quality+"; "+r.kind+"."})));$("osum").textContent="Rows still to be checked ("+$("open").children.length+")";
+render();
+setTimeout(()=>{const S=DATA.sensitivity.filter(r=>r.feasible&&r.p<=3e-3),pk=[0,.25,.5,.75,1].map(f=>S[Math.floor(f*(S.length-1))]);let w=0;pk.forEach(r=>{w=Math.max(w,Math.abs(best(r.p,r.reaction_us,r.cycle_us).vol/r.expected_volume_Mqd-1))});
+ $("sc2").textContent="Model check: the live model matched the Python export at "+pk.length+" sampled grid points (largest difference "+(100*w).toFixed(2)+"%)."+(w>.01?" That is more than 1%, so treat the live numbers with caution.":"")},400);
+})();
+</script>
+</body>
+</html>
